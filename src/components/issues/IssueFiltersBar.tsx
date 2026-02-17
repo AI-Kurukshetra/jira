@@ -58,6 +58,12 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
     }
   }, [storageKey])
 
+  useEffect(() => {
+    if (filters.sprintFilter !== 'specific' && filters.sprintId) {
+      setFilters({ sprintId: undefined })
+    }
+  }, [filters.sprintFilter, filters.sprintId, setFilters])
+
   const persistSaved = (next: SavedFilter[]) => {
     setSavedFilters(next)
     localStorage.setItem(storageKey, JSON.stringify(next))

@@ -1,9 +1,11 @@
 'use client'
 
 import CloseIcon from '@mui/icons-material/Close'
-import { Box, Divider, IconButton, MenuItem, Select, Tab, Tabs, TextField, Typography } from '@mui/material'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
+import { Box, Button, Divider, IconButton, MenuItem, Select, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 
 import { IssueKey } from '@/components/design/IssueKey'
@@ -16,7 +18,7 @@ import { ActivityItem } from '@/components/comments/ActivityItem'
 import { IssueAttachments } from '@/components/issues/IssueAttachments'
 import { AssigneeSelect } from '@/components/issues/AssigneeSelect'
 import { LabelMultiSelect } from '@/components/issues/LabelMultiSelect'
-import { apiDelete, apiPatch, apiPost } from '@/lib/api/client'
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api/client'
 import type { IssueStatus, IssuePriority } from '@/lib/types'
 import type { IssueWithAssignee } from '@/lib/hooks/useIssues'
 import { useComments } from '@/lib/hooks/useComments'
@@ -49,6 +51,41 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
   const { data: me } = useMe()
   const { data: comments = [] } = useComments(issue.id)
   const { data: activity = [] } = useActivity(issue.id)
+
+  const { data: watchState } = useQuery({
+    queryKey: ['issue-watch', issue.id],
+    queryFn: async () => {
+      const result = await apiGet<{ watching: boolean; count: number }>(`/api/issues/${issue.id}/watch`)
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    }
+  })
+
+  const toggleWatch = useMutation({
+    mutationFn: async (nextWatching: boolean) => {
+      const result = nextWatching
+        ? await apiPost(`/api/issues/${issue.id}/watch`, {})
+        : await apiDelete(`/api/issues/${issue.id}/watch`)
+      if (!result.success) throw new Error(result.error)
+      return nextWatching
+    },
+    onMutate: async (nextWatching) => {
+      await queryClient.cancelQueries({ queryKey: ['issue-watch', issue.id] })
+      const previous = queryClient.getQueryData<{ watching: boolean; count: number }>(['issue-watch', issue.id])
+      if (previous) {
+        queryClient.setQueryData(['issue-watch', issue.id], {
+          watching: nextWatching,
+          count: nextWatching ? previous.count + 1 : Math.max(0, previous.count - 1)
+        })
+      }
+      return { previous }
+    },
+    onError: (_error, _nextWatching, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['issue-watch', issue.id], context.previous)
+      }
+    }
+  })
 
   useEffect(() => {
     setSummary(issue.summary)
@@ -126,18 +163,28 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
             {issue.issueType}
           </Typography>
         </Box>
-        <IconButton
-          size="small"
-          onClick={() => {
-            if (projectKey) {
-              router.push(`/projects/${projectKey}/board`)
-              return
-            }
-            router.back()
-          }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={watchState?.watching ? <VisibilityOffOutlinedIcon /> : <VisibilityOutlinedIcon />}
+            onClick={() => toggleWatch.mutate(!(watchState?.watching ?? false))}
+          >
+            {watchState?.watching ? 'Unwatch' : 'Watch'}
+          </Button>
+          <IconButton
+            size="small"
+            onClick={() => {
+              if (projectKey) {
+                router.push(`/projects/${projectKey}/board`)
+                return
+              }
+              router.back()
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '3fr 2fr' }, gap: 3 }}>

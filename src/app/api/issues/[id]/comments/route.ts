@@ -58,12 +58,43 @@ export async function POST(request: Request, { params }: Params) {
     .eq('id', id)
     .single()
 
-  const recipients = [issue?.reporter_id, issue?.assignee_id].filter(
-    (value): value is string => Boolean(value) && value !== user.id
-  )
+  const { data: watchers } = await supabase
+    .from('issue_watchers')
+    .select('user_id')
+    .eq('issue_id', id)
+
+  const mentioned = new Set<string>()
+  const mentionMatches = parsed.data.body.match(/@([a-zA-Z0-9._-]+)/g) ?? []
+  if (mentionMatches.length > 0 && issue?.project_id) {
+    const tokens = mentionMatches.map((value) => value.replace('@', '').toLowerCase())
+    const { data: members } = await supabase
+      .from('project_members')
+      .select('user_id, profiles!project_members_user_id_fkey(full_name, display_name)')
+      .eq('project_id', issue.project_id)
+
+    const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, '')
+    members?.forEach((member) => {
+      const profile = (member as { profiles?: { full_name?: string | null; display_name?: string | null } }).profiles
+      const fullName = profile?.full_name ?? ''
+      const displayName = profile?.display_name ?? ''
+      const normalized = normalize(displayName || fullName)
+      if (normalized && tokens.some((token) => normalized.includes(token))) {
+        mentioned.add(member.user_id)
+      }
+    })
+  }
+
+  const recipients = new Set<string>()
+  ;[issue?.reporter_id, issue?.assignee_id]
+    .filter((value): value is string => Boolean(value))
+    .forEach((value) => recipients.add(value))
+  watchers?.forEach((watcher) => {
+    if (watcher.user_id) recipients.add(watcher.user_id)
+  })
+  recipients.delete(user.id)
 
   await Promise.all(
-    recipients.map((recipientId) =>
+    Array.from(recipients).map((recipientId) =>
       createNotification(supabase, {
         recipientId,
         type: 'comment_added',
@@ -73,6 +104,21 @@ export async function POST(request: Request, { params }: Params) {
         relatedProjectId: issue?.project_id ?? null
       })
     )
+  )
+
+  await Promise.all(
+    Array.from(mentioned)
+      .filter((recipientId) => recipientId !== user.id)
+      .map((recipientId) =>
+        createNotification(supabase, {
+          recipientId,
+          type: 'mention',
+          title: `You were mentioned on ${issue?.issue_key ?? 'issue'}`,
+          message: issue?.summary ?? 'Mentioned in a comment',
+          relatedIssueId: id,
+          relatedProjectId: issue?.project_id ?? null
+        })
+      )
   )
 
   return ok(data, 201)

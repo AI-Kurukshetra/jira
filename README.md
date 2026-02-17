@@ -34,6 +34,8 @@ cp .env.local.example .env.local
 - `src/supabase/migrations/003_issue_sequences_rls.sql`
 - `src/supabase/migrations/004_board_columns.sql`
 - `src/supabase/migrations/005_issue_labels_policy.sql`
+- `src/supabase/migrations/006_login_security_fields.sql`
+- `src/supabase/migrations/007_issue_watchers_policy.sql`
 
 4. (Optional) Seed data
 - Apply `src/supabase/seed.sql`.
@@ -41,6 +43,7 @@ cp .env.local.example .env.local
 
 5. Configure storage + email
 - Create a Supabase Storage bucket named `attachments` (private).
+- Create a Supabase Storage bucket named `avatars` (public).
 - (Email) If using Resend, set `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` in `.env.local`.
 
 6. Start the dev server

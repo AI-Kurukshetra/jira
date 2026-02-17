@@ -100,6 +100,7 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
           backlogIssues={backlogIssues}
           sprintIssues={sprintIssues}
           projectKey={project?.key}
+          onAddIssue={(sprintId) => openCreateIssue(project?.id, sprintId ?? undefined)}
           onStartSprint={(sprint) => {
             setActionError(null)
             setStartDate(null)

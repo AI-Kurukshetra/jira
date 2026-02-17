@@ -13,9 +13,19 @@ interface BacklogViewProps {
   projectKey?: string
   onStartSprint?: (sprint: Sprint) => void
   onCompleteSprint?: (sprint: Sprint) => void
+  onAddIssue?: (sprintId?: string | null) => void
 }
 
-export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprintIssues, projectKey, onStartSprint, onCompleteSprint }: BacklogViewProps) {
+export function BacklogView({
+  activeSprint,
+  futureSprints,
+  backlogIssues,
+  sprintIssues,
+  projectKey,
+  onStartSprint,
+  onCompleteSprint,
+  onAddIssue
+}: BacklogViewProps) {
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       {activeSprint && (
@@ -27,6 +37,7 @@ export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprint
           {...(projectKey ? { projectKey } : {})}
           canComplete
           onComplete={() => onCompleteSprint?.(activeSprint)}
+          onAddIssue={() => onAddIssue?.(activeSprint.id)}
         />
       )}
       {futureSprints.map((sprint) => (
@@ -38,6 +49,7 @@ export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprint
           {...(projectKey ? { projectKey } : {})}
           canStart
           onStart={() => onStartSprint?.(sprint)}
+          onAddIssue={() => onAddIssue?.(sprint.id)}
         />
       ))}
       <SprintSection
@@ -45,6 +57,7 @@ export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprint
         subtitle="Unscheduled"
         issues={backlogIssues}
         {...(projectKey ? { projectKey } : {})}
+        onAddIssue={() => onAddIssue?.(null)}
       />
     </Box>
   )

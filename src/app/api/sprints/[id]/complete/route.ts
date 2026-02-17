@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { logger } from '@/lib/logger'
+import { createNotification } from '@/lib/services/notifications'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -78,6 +79,27 @@ export async function PATCH(request: Request, { params }: Params) {
     logger.error({ updateError }, 'Failed to complete sprint')
     return fail('Failed to complete sprint', 500)
   }
+
+  const { data: members } = await supabase
+    .from('project_members')
+    .select('user_id')
+    .eq('project_id', sprint.project_id)
+
+  await Promise.all(
+    (members ?? [])
+      .map((member) => member.user_id)
+      .filter((memberId): memberId is string => Boolean(memberId) && memberId !== user.id)
+      .map((memberId) =>
+        createNotification(supabase, {
+          recipientId: memberId,
+          type: 'sprint_completed',
+          title: `Sprint completed`,
+          message: `${updated.name} has been completed.`,
+          relatedProjectId: sprint.project_id,
+          relatedIssueId: null
+        })
+      )
+  )
 
   return ok(updated)
 }

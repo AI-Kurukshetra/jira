@@ -158,12 +158,22 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   if (updated.status !== current.status) {
-    const notifyTargets = [updated.reporter_id, updated.assignee_id].filter(
-      (value): value is string => Boolean(value)
-    )
+    const { data: watchers } = await supabase
+      .from('issue_watchers')
+      .select('user_id')
+      .eq('issue_id', updated.id)
+
+    const notifyTargets = new Set<string>()
+    ;[updated.reporter_id, updated.assignee_id].filter((value): value is string => Boolean(value)).forEach((value) => {
+      notifyTargets.add(value)
+    })
+    watchers?.forEach((watcher) => {
+      if (watcher.user_id) notifyTargets.add(watcher.user_id)
+    })
+    notifyTargets.delete(user.id)
 
     await Promise.all(
-      notifyTargets.map((recipientId) =>
+      Array.from(notifyTargets).map((recipientId) =>
         createNotification(supabase, {
           recipientId,
           type: 'status_changed',

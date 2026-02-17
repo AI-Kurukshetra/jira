@@ -11,8 +11,8 @@ export interface IssueFilters {
   statuses: IssueStatus[]
   labels: string[]
   sprintFilter: SprintFilter
-  sprintId?: string
-  dueDateFrom?: string
-  dueDateTo?: string
+  sprintId: string | undefined
+  dueDateFrom: string | undefined
+  dueDateTo: string | undefined
   myOnly: boolean
 }
