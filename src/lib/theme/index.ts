@@ -126,7 +126,16 @@ const darkThemeOptions: ThemeOptions = {
         '::selection': { background: alpha(darkTokens.accent.main, 0.3), color: darkTokens.text.primary },
         '[data-nextjs-dev-indicator]': { display: 'none !important' },
         '#__next-build-watcher': { display: 'none !important' },
-        '#nextjs-portal [data-nextjs-dev-indicator]': { display: 'none !important' }
+        '#nextjs-portal [data-nextjs-dev-indicator]': { display: 'none !important' },
+        '[data-nextjs-devtools]': { display: 'none !important' },
+        '#__nextjs__devtools': { display: 'none !important' },
+        '#nextjs__devtools': { display: 'none !important' },
+        '[data-nextjs-dialog-overlay]': { display: 'none !important' },
+        '[data-nextjs-dialog]': { display: 'none !important' },
+        '[data-nextjs-route-info]': { display: 'none !important' },
+        '[data-nextjs-route-info-panel]': { display: 'none !important' },
+        '[data-nextjs-route-info-dialog]': { display: 'none !important' },
+        '[data-nextjs-preferences]': { display: 'none !important' }
       }
     },
     MuiButton: {
