@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { UserAvatar } from '@/components/design/UserAvatar'
 import { createClient } from '@/lib/supabase/client'
 import { ALLOWED_AVATAR_TYPES, AVATARS_BUCKET, MAX_AVATAR_BYTES } from '@/config/constants'
+import { sanitizeFileName } from '@/lib/utils'
 
 export default function UserSettingsPage() {
   const { data } = useMe()
@@ -86,7 +87,8 @@ export default function UserSettingsPage() {
 
     setAvatarUploading(true)
     const supabase = createClient()
-    const storagePath = `${data.user.id}/${Date.now()}-${file.name}`
+    const safeName = sanitizeFileName(file.name)
+    const storagePath = `${data.user.id}/${Date.now()}-${safeName}`
 
     const { error: uploadError } = await supabase.storage.from(AVATARS_BUCKET).upload(storagePath, file, {
       upsert: true

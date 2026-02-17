@@ -98,3 +98,13 @@ export function getRelativeUnitFromMs(ms: number) {
   if (abs < DAY_MS) return DEFAULT_RELATIVE_UNITS[2]
   return DEFAULT_RELATIVE_UNITS[3]
 }
+
+export function sanitizeFileName(input: string) {
+  const trimmed = input.trim()
+  if (!trimmed) return 'file'
+  const sanitized = trimmed
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zA-Z0-9._-]/g, '')
+    .replace(/-+/g, '-')
+  return sanitized || 'file'
+}
