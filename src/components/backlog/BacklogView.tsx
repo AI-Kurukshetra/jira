@@ -10,9 +10,11 @@ interface BacklogViewProps {
   futureSprints: Sprint[]
   backlogIssues: Issue[]
   sprintIssues: Record<string, Issue[]>
+  onStartSprint?: (sprint: Sprint) => void
+  onCompleteSprint?: (sprint: Sprint) => void
 }
 
-export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprintIssues }: BacklogViewProps) {
+export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprintIssues, onStartSprint, onCompleteSprint }: BacklogViewProps) {
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       {activeSprint && (
@@ -21,6 +23,8 @@ export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprint
           subtitle="Active Sprint"
           active
           issues={sprintIssues[activeSprint.id] ?? []}
+          canComplete
+          onComplete={() => onCompleteSprint?.(activeSprint)}
         />
       )}
       {futureSprints.map((sprint) => (
@@ -29,6 +33,8 @@ export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprint
           title={sprint.name}
           subtitle="Future Sprint"
           issues={sprintIssues[sprint.id] ?? []}
+          canStart
+          onStart={() => onStartSprint?.(sprint)}
         />
       ))}
       <SprintSection title="Backlog" subtitle="Unscheduled" issues={backlogIssues} />

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
   let queryBuilder = supabase
     .from('issues')
-    .select('*, assignee:profiles!issues_assignee_id(full_name, display_name, avatar_url)')
+    .select('*, assignee:profiles!issues_assignee_id(full_name, display_name, avatar_url), issue_labels(labels(name))')
     .order('created_at', { ascending: false })
 
   if (projectId) queryBuilder = queryBuilder.eq('project_id', projectId)

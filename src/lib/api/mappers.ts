@@ -67,6 +67,7 @@ interface DbIssueRow {
   created_at: string
   updated_at: string
   assignee?: DbProfileLite | DbProfileLite[] | null
+  issue_labels?: Array<{ labels?: { name?: string | null } | null }>
 }
 
 interface DbProfileLite {
@@ -175,6 +176,9 @@ export const mapIssueRow = (row: DbIssueRow): IssueWithAssignee => ({
   description: row.description ?? null,
   status: isIssueStatus(row.status) ? row.status : 'todo',
   priority: isIssuePriority(row.priority) ? row.priority : 'medium',
+  labels: (row.issue_labels ?? [])
+    .map((entry) => entry.labels?.name ?? null)
+    .filter((label): label is string => Boolean(label)),
   assigneeId: row.assignee_id ?? null,
   reporterId: row.reporter_id ?? null,
   storyPoints: row.story_points ?? null,

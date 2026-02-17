@@ -102,6 +102,7 @@ export interface Issue {
   description?: string | null
   status: IssueStatus
   priority: IssuePriority
+  labels?: string[]
   assigneeId?: Id | null
   reporterId?: Id | null
   storyPoints?: number | null

@@ -3,7 +3,7 @@
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Box } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { KanbanColumn } from '@/components/board/KanbanColumn'
@@ -28,6 +28,10 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [issues, setIssues] = useState<IssueWithAssignee[]>(initialIssues)
   const queryClient = useQueryClient()
+
+  useEffect(() => {
+    setIssues(initialIssues)
+  }, [initialIssues])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -136,7 +140,7 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
                     summary={issue.summary}
                     issueType={issue.issueType}
                     priority={issue.priority}
-                    labels={[]}
+                    labels={issue.labels ?? []}
                     {...(issue.assignee
                       ? {
                           assignee: {
@@ -164,7 +168,7 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
               summary={activeIssue.summary}
               issueType={activeIssue.issueType}
               priority={activeIssue.priority}
-              labels={[]}
+              labels={activeIssue.labels ?? []}
               {...(activeIssue.assignee
                 ? {
                     assignee: {

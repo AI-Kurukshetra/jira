@@ -10,9 +10,13 @@ interface SprintSectionProps {
   subtitle: string
   active?: boolean
   issues: Issue[]
+  onStart?: () => void
+  onComplete?: () => void
+  canStart?: boolean
+  canComplete?: boolean
 }
 
-export function SprintSection({ title, subtitle, active, issues }: SprintSectionProps) {
+export function SprintSection({ title, subtitle, active, issues, onStart, onComplete, canStart, canComplete }: SprintSectionProps) {
   return (
     <Box
       sx={(theme) => ({
@@ -46,8 +50,16 @@ export function SprintSection({ title, subtitle, active, issues }: SprintSection
         </Typography>
         <Chip label={`${issues.length} issues`} size="small" />
         <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 1 }}>
-          <Button variant="outlined" size="small">Start Sprint</Button>
-          <Button variant="text" size="small">Complete</Button>
+          {canStart && (
+            <Button variant="outlined" size="small" onClick={onStart}>
+              Start Sprint
+            </Button>
+          )}
+          {canComplete && (
+            <Button variant="text" size="small" onClick={onComplete}>
+              Complete
+            </Button>
+          )}
         </Box>
       </Box>
       <Divider />
