@@ -1,14 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, FormControlLabel, Switch, TextField, Typography } from '@mui/material'
+import { useRouter } from 'next/navigation'
 
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { loginSchema } from '@/lib/validations/schemas'
+import { loginAction } from '@/app/(auth)/actions'
 import type { z } from 'zod'
 
 type LoginValues = z.infer<typeof loginSchema>
@@ -18,6 +20,9 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
   })
+  const router = useRouter()
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const bullets = useMemo(
     () => ['Track projects with clarity', 'Ship work faster with sprints', 'Collaborate with context-rich issues'],
@@ -25,7 +30,15 @@ export default function LoginPage() {
   )
 
   const onSubmit = (values: LoginValues) => {
-    void values
+    setServerError(null)
+    startTransition(async () => {
+      const result = await loginAction(values)
+      if (!result.success) {
+        setServerError(result.error ?? 'Login failed')
+        return
+      }
+      router.push('/')
+    })
   }
 
   return (
@@ -63,9 +76,14 @@ export default function LoginPage() {
               {formState.errors.password.message}
             </Typography>
           )}
+          {serverError && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {serverError}
+            </Typography>
+          )}
 
-          <Button type="submit" variant="contained" size="large">
-            Sign in
+          <Button type="submit" variant="contained" size="large" disabled={isPending}>
+            {isPending ? 'Signing in...' : 'Sign in'}
           </Button>
         </Box>
       </AuthCard>

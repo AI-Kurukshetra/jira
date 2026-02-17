@@ -1,0 +1,52 @@
+'use client'
+
+import { Box } from '@mui/material'
+
+import { EmptyState } from '@/components/ui/EmptyState'
+import { IssueRow } from '@/components/backlog/IssueRow'
+import { useIssues } from '@/lib/hooks/useIssues'
+import { useMe } from '@/lib/hooks/useMe'
+
+export function AssignedIssues() {
+  const { data: me } = useMe()
+  const { data, isLoading, isError } = useIssues(
+    me?.user.id ? { assigneeId: me.user.id } : undefined
+  )
+
+  if (isLoading) {
+    return <Box sx={{ color: 'text.secondary' }}>Loading issues...</Box>
+  }
+
+  if (isError) {
+    return <Box sx={{ color: 'error.main' }}>Failed to load issues.</Box>
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <EmptyState
+        title="No assignments yet"
+        description="You are all caught up. Create a new issue or join a sprint to get started."
+        actionLabel="Create issue"
+      />
+    )
+  }
+
+  return (
+    <Box sx={{ display: 'grid', gap: 0.5 }}>
+      {data.map((issue) => (
+        <IssueRow
+          key={issue.id}
+          issueKey={issue.issueKey}
+          summary={issue.summary}
+          issueType={issue.issueType}
+          priority={issue.priority}
+          status={issue.status}
+          {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
+          {...(issue.storyPoints !== null && issue.storyPoints !== undefined
+            ? { storyPoints: issue.storyPoints }
+            : {})}
+        />
+      ))}
+    </Box>
+  )
+}

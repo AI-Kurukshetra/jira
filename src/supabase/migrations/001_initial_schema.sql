@@ -6,6 +6,7 @@ CREATE TABLE profiles (
   display_name TEXT,
   avatar_url TEXT,
   timezone TEXT DEFAULT 'UTC',
+  notification_prefs JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

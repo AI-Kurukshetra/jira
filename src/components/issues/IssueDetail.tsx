@@ -12,6 +12,7 @@ import { UserAvatar } from '@/components/design/UserAvatar'
 import { CommentEditor } from '@/components/comments/CommentEditor'
 import { CommentList } from '@/components/comments/CommentList'
 import { ActivityItem } from '@/components/comments/ActivityItem'
+import { IssueAttachments } from '@/components/issues/IssueAttachments'
 
 interface IssueDetailProps {
   issueKey: string
@@ -99,6 +100,7 @@ export function IssueDetail({ issueKey }: IssueDetailProps) {
               <PriorityIndicator priority="high" />
             </Box>
           </Box>
+          <IssueAttachments issueId={issueKey} />
         </Box>
       </Box>
     </Box>

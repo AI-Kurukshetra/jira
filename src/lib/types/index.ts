@@ -18,6 +18,14 @@ export interface Profile {
   displayName?: string
   avatarUrl?: string
   timezone?: string
+  notificationPrefs?: {
+    email?: boolean
+    inApp?: boolean
+    assignments?: boolean
+    statusChanges?: boolean
+    comments?: boolean
+    mentions?: boolean
+  }
   createdAt: string
   updatedAt: string
 }

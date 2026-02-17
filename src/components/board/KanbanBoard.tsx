@@ -1,73 +1,169 @@
 'use client'
 
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Box } from '@mui/material'
+import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { KanbanColumn } from '@/components/board/KanbanColumn'
 import { IssueCard } from '@/components/issues/IssueCard'
-import { KanbanColumn } from './KanbanColumn'
+import { SortableIssueCard } from '@/components/board/SortableIssueCard'
+import { apiPatch } from '@/lib/api/client'
+import type { Issue, IssueStatus } from '@/lib/types'
 
-const mockIssues = {
-  todo: [
-    {
-      issueKey: 'PROJ-032',
-      summary: 'Design onboarding flow for new members',
-      issueType: 'story' as const,
-      priority: 'high' as const,
-      labels: ['Design'],
-      assignee: { id: 'user-1', name: 'Ava Reynolds' },
-      storyPoints: 5
-    }
-  ],
-  inprogress: [
-    {
-      issueKey: 'PROJ-041',
-      summary: 'Implement issue activity timeline',
-      issueType: 'task' as const,
-      priority: 'medium' as const,
-      labels: ['Frontend'],
-      assignee: { id: 'user-2', name: 'Kai Holt' },
-      storyPoints: 3
-    }
-  ],
-  done: [
-    {
-      issueKey: 'PROJ-018',
-      summary: 'Fix stale notification badge count',
-      issueType: 'bug' as const,
-      priority: 'low' as const,
-      labels: ['Bugfix'],
-      assignee: { id: 'user-3', name: 'Lena Park' },
-      storyPoints: 2
-    }
-  ]
+interface KanbanBoardProps {
+  initialIssues?: Issue[]
 }
 
-export function KanbanBoard() {
+const STATUS_COLUMNS = [
+  { key: 'todo', title: 'To Do' },
+  { key: 'inprogress', title: 'In Progress' },
+  { key: 'done', title: 'Done' }
+] as const
+
+export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [issues, setIssues] = useState<Issue[]>(initialIssues)
+  const queryClient = useQueryClient()
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  const updateIssue = useMutation({
+    mutationFn: async ({ id, status, boardOrder }: { id: string; status: IssueStatus; boardOrder: number }) => {
+      const result = await apiPatch<Issue, Partial<Issue>>(`/api/issues/${id}`, {
+        status,
+        boardOrder
+      })
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    },
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ['issues'] })
+      const previous = queryClient.getQueryData<Issue[]>(['issues'])
+      if (previous) {
+        queryClient.setQueryData<Issue[]>(['issues'], (current) => {
+          if (!current) return current
+          return current.map((issue) =>
+            issue.id === payload.id
+              ? { ...issue, status: payload.status as Issue['status'], boardOrder: payload.boardOrder }
+              : issue
+          )
+        })
+      }
+      return { previous }
+    },
+    onError: (_error, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['issues'], context.previous)
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<Issue[]>(['issues'], (current) => {
+        if (!current) return current
+        return current.map((issue) => (issue.id === data.id ? data : issue))
+      })
+    }
+  })
+
+  const grouped = useMemo(() => {
+    const map: Record<string, Issue[]> = { todo: [], inprogress: [], done: [] }
+    for (const issue of issues) {
+      map[issue.status]?.push(issue)
+    }
+    return map
+  }, [issues])
+
+  const activeIssue = issues.find((issue) => issue.id === activeId)
+
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 2,
-        overflowX: 'auto',
-        overflowY: 'hidden',
-        py: 2,
-        px: 1
+    <DndContext
+      sensors={sensors}
+      onDragStart={(event) => setActiveId(event.active.id as string)}
+      onDragEnd={(event) => {
+        const { active, over } = event
+        setActiveId(null)
+        if (!over) return
+
+        const activeIdValue = active.id as string
+        const overIdValue = over.id as string
+
+        if (activeIdValue === overIdValue) return
+
+        const activeIssue = issues.find((issue) => issue.id === activeIdValue)
+        const overIssue = issues.find((issue) => issue.id === overIdValue)
+
+        if (!activeIssue || !overIssue) return
+
+        const updatedStatus = overIssue.status as IssueStatus
+
+        setIssues((current) => {
+          const fromIndex = current.findIndex((issue) => issue.id === activeIdValue)
+          const toIndex = current.findIndex((issue) => issue.id === overIdValue)
+          const moved = arrayMove(current, fromIndex, toIndex)
+          return moved.map((issue, index) =>
+            issue.id === activeIdValue ? { ...issue, status: updatedStatus, boardOrder: index } : { ...issue, boardOrder: index }
+          )
+        })
+
+        if (activeIssue.id) {
+          updateIssue.mutate({ id: activeIssue.id, status: updatedStatus, boardOrder: 0 })
+        }
       }}
     >
-      <KanbanColumn title="To Do" count={mockIssues.todo.length}>
-        {mockIssues.todo.map((issue) => (
-          <IssueCard key={issue.issueKey} {...issue} />
-        ))}
-      </KanbanColumn>
-      <KanbanColumn title="In Progress" count={mockIssues.inprogress.length}>
-        {mockIssues.inprogress.map((issue) => (
-          <IssueCard key={issue.issueKey} {...issue} />
-        ))}
-      </KanbanColumn>
-      <KanbanColumn title="Done" count={mockIssues.done.length}>
-        {mockIssues.done.map((issue) => (
-          <IssueCard key={issue.issueKey} {...issue} />
-        ))}
-      </KanbanColumn>
-    </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 2,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          py: 2,
+          px: 1
+        }}
+      >
+        {STATUS_COLUMNS.map((column) => {
+          const columnIssues = grouped[column.key] ?? []
+          return (
+            <KanbanColumn key={column.key} title={column.title} count={columnIssues.length}>
+              <SortableContext items={columnIssues.map((issue) => issue.id)} strategy={rectSortingStrategy}>
+                {columnIssues.map((issue) => (
+                  <SortableIssueCard
+                    key={issue.id}
+                    id={issue.id}
+                    issueKey={issue.issueKey}
+                    summary={issue.summary}
+                    issueType={issue.issueType}
+                    priority={issue.priority}
+                    labels={[]}
+                    {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
+                    {...(issue.storyPoints !== null && issue.storyPoints !== undefined
+                      ? { storyPoints: issue.storyPoints }
+                      : {})}
+                  />
+                ))}
+              </SortableContext>
+            </KanbanColumn>
+          )
+        })}
+      </Box>
+
+      <DragOverlay>
+        {activeIssue ? (
+          <Box sx={{ transform: 'scale(1.03)', opacity: 0.95 }}>
+            <IssueCard
+              issueKey={activeIssue.issueKey}
+              summary={activeIssue.summary}
+              issueType={activeIssue.issueType}
+              priority={activeIssue.priority}
+              labels={[]}
+              {...(activeIssue.assigneeId ? { assignee: { id: activeIssue.assigneeId, name: 'Assignee' } } : {})}
+              {...(activeIssue.storyPoints !== null && activeIssue.storyPoints !== undefined
+                ? { storyPoints: activeIssue.storyPoints }
+                : {})}
+            />
+          </Box>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }

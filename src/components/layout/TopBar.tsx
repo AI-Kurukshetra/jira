@@ -1,10 +1,11 @@
 'use client'
 
 import AddIcon from '@mui/icons-material/Add'
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
-import { Badge, Box, Breadcrumbs, Button, IconButton, Typography } from '@mui/material'
+import { Box, Breadcrumbs, Button, Typography } from '@mui/material'
 
 import { GlobalSearch } from './GlobalSearch'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
+import { UserMenu } from '@/components/layout/UserMenu'
 
 interface TopBarProps {
   collapsed: boolean
@@ -40,11 +41,8 @@ export function TopBar({ collapsed }: TopBarProps) {
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Button variant="contained" size="small" startIcon={<AddIcon />}>Create</Button>
-        <IconButton aria-label="Notifications">
-          <Badge color="error" variant="dot" overlap="circular">
-            <NotificationsNoneIcon />
-          </Badge>
-        </IconButton>
+        <NotificationBell />
+        <UserMenu />
       </Box>
     </Box>
   )

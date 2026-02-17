@@ -3,35 +3,16 @@
 import { Box, Button, Chip, Divider, Typography } from '@mui/material'
 
 import { IssueRow } from './IssueRow'
+import type { Issue } from '@/lib/types'
 
 interface SprintSectionProps {
   title: string
   subtitle: string
   active?: boolean
+  issues: Issue[]
 }
 
-const mockRows = [
-  {
-    issueKey: 'PROJ-052',
-    summary: 'Ship member role management',
-    issueType: 'task' as const,
-    priority: 'high' as const,
-    status: 'inprogress' as const,
-    assignee: { id: 'user-4', name: 'Riley Chen' },
-    storyPoints: 8
-  },
-  {
-    issueKey: 'PROJ-060',
-    summary: 'Audit notification templates',
-    issueType: 'story' as const,
-    priority: 'medium' as const,
-    status: 'todo' as const,
-    assignee: { id: 'user-5', name: 'Nova Singh' },
-    storyPoints: 5
-  }
-]
-
-export function SprintSection({ title, subtitle, active }: SprintSectionProps) {
+export function SprintSection({ title, subtitle, active, issues }: SprintSectionProps) {
   return (
     <Box
       sx={(theme) => ({
@@ -63,7 +44,7 @@ export function SprintSection({ title, subtitle, active }: SprintSectionProps) {
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
           {subtitle}
         </Typography>
-        <Chip label="7 issues" size="small" />
+        <Chip label={`${issues.length} issues`} size="small" />
         <Box sx={{ marginLeft: 'auto', display: 'flex', gap: 1 }}>
           <Button variant="outlined" size="small">Start Sprint</Button>
           <Button variant="text" size="small">Complete</Button>
@@ -71,8 +52,19 @@ export function SprintSection({ title, subtitle, active }: SprintSectionProps) {
       </Box>
       <Divider />
       <Box sx={{ px: 1, py: 1, display: 'grid', gap: 0.5 }}>
-        {mockRows.map((row) => (
-          <IssueRow key={row.issueKey} {...row} />
+        {issues.map((issue) => (
+          <IssueRow
+            key={issue.id}
+            issueKey={issue.issueKey}
+            summary={issue.summary}
+            issueType={issue.issueType}
+            priority={issue.priority}
+            status={issue.status}
+            {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
+            {...(issue.storyPoints !== null && issue.storyPoints !== undefined
+              ? { storyPoints: issue.storyPoints }
+              : {})}
+          />
         ))}
       </Box>
     </Box>

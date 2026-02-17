@@ -22,6 +22,9 @@ export const registerSchema = z.object({
     .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
     .regex(passwordRegex, 'Password must include 1 uppercase letter and 1 number'),
   confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword']
 })
 
 export const loginSchema = z.object({

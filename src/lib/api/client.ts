@@ -41,7 +41,7 @@ export async function apiDelete<T, B>(path: string, body?: B): Promise<Result<T>
   const response = await fetch(path, {
     method: 'DELETE',
     headers: JSON_HEADERS,
-    body: body ? JSON.stringify(body) : undefined
+    body: body ? JSON.stringify(body) : null
   })
   const payload = (await response.json()) as { data: T | null; error: string | null }
   if (!response.ok || payload.error) {

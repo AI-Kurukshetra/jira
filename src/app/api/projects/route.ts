@@ -7,13 +7,16 @@ import { logger } from '@/lib/logger'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
+  const key = searchParams.get('key')
 
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const query = supabase.from('projects').select('*').order('created_at', { ascending: false })
-  const { data, error: fetchError } = status ? await query.eq('status', status) : await query
+  let query = supabase.from('projects').select('*').order('created_at', { ascending: false })
+  if (status) query = query.eq('status', status)
+  if (key) query = query.eq('key', key)
+  const { data, error: fetchError } = await query
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch projects')
