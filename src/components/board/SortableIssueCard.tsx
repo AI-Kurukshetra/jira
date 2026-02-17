@@ -25,8 +25,7 @@ export function SortableIssueCard({ id, ...props }: SortableIssueCardProps) {
   return (
     <Box
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      sx={{ opacity: isDragging ? 0.6 : 1 }}
+      sx={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 }}
       {...attributes}
       {...listeners}
     >
