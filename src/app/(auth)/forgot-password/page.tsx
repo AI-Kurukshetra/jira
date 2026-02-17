@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthSplitLayout title="ProjectHub" subtitle="Ship better. Track smarter." bullets={bullets}>
+    <AuthSplitLayout title="Jira Bacancy" subtitle="Ship better. Track smarter." bullets={bullets}>
       <AuthCard
         title="Reset your password"
         subtitle="We will email you a secure reset link." 

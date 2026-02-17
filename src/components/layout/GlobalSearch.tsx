@@ -1,7 +1,7 @@
 'use client'
 
 import SearchIcon from '@mui/icons-material/Search'
-import { Box, Button, InputBase, Paper, Popper, Typography } from '@mui/material'
+import { Box, Button, ClickAwayListener, InputBase, Paper, Popper, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
@@ -44,7 +44,7 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
   const queryProjectKey = project?.key ?? projectKey
   const debouncedQuery = useDebouncedValue(query, 300)
 
-  const { data } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['search', debouncedQuery, project?.id ?? 'all'],
     enabled: debouncedQuery.trim().length >= 2,
     queryFn: async () => {
@@ -89,6 +89,8 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
 
   const hasResults = results.length > 0
 
+  const shouldOpen = open || debouncedQuery.trim().length >= 2
+
   return (
     <Box ref={setAnchorEl} sx={{ position: 'relative' }}>
       <MotionPaper
@@ -111,7 +113,6 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && query.trim().length >= 2) {
               const params = new URLSearchParams()
@@ -123,6 +124,9 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
                 params.set('scope', 'all')
               }
               router.push(`/search?${params.toString()}`)
+            }
+            if (event.key === 'Escape') {
+              setOpen(false)
             }
           }}
           placeholder="Search issues..."
@@ -141,115 +145,127 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
         </Box>
       </MotionPaper>
 
-      <Popper open={open} anchorEl={anchorEl} placement="bottom" sx={{ zIndex: 1300 }}>
-        <Paper
-          elevation={3}
-          sx={(theme) => ({
-            mt: 1,
-            width: 420,
-            backgroundColor: theme.palette.background.paper,
-            border: `1px solid ${theme.palette.divider}`,
-            borderRadius: 2,
-            p: 1.5
-          })}
-        >
-          {!query && (
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Start typing to search issues and projects.
-            </Typography>
-          )}
-          {query && !hasResults && (
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              No results yet. Refine your search.
-            </Typography>
-          )}
+      <Popper open={shouldOpen} anchorEl={anchorEl} placement="bottom" sx={{ zIndex: 1300 }}>
+        <ClickAwayListener onClickAway={() => setOpen(false)}>
+          <Paper
+            elevation={3}
+            sx={(theme) => ({
+              mt: 1,
+              width: 420,
+              backgroundColor: theme.palette.background.paper,
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 2,
+              p: 1.5
+            })}
+          >
+            {!query && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Start typing to search issues and projects.
+              </Typography>
+            )}
+            {isLoading && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Searching...
+              </Typography>
+            )}
+            {isError && (
+              <Typography variant="caption" sx={{ color: 'error.main' }}>
+                {error instanceof Error ? error.message : 'Search failed'}
+              </Typography>
+            )}
+            {query && !hasResults && !isLoading && !isError && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                No results yet. Refine your search.
+              </Typography>
+            )}
 
-          {hasResults && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  size="small"
-                  variant="text"
-                  onMouseDown={() => {
-                    const params = new URLSearchParams()
-                    params.set('query', query.trim())
-                    if (project?.id) {
-                      params.set('projectId', project.id)
-                      params.set('scope', 'project')
-                    } else {
-                      params.set('scope', 'all')
-                    }
-                    router.push(`/search?${params.toString()}`)
-                  }}
-                >
-                  View all results
-                </Button>
-              </Box>
-              <Box>
-                <Typography variant="overline" sx={{ color: 'text.tertiary' }}>
-                  Issues
-                </Typography>
-                {grouped.issues.map((item) => (
-                  <Box
-                    key={item.id}
+            {hasResults && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    size="small"
+                    variant="text"
                     onMouseDown={() => {
-                      if (item.projectKey && item.issueKey) {
-                        router.push(`/projects/${item.projectKey}/issues/${item.issueKey}`)
+                      const params = new URLSearchParams()
+                      params.set('query', query.trim())
+                      if (project?.id) {
+                        params.set('projectId', project.id)
+                        params.set('scope', 'project')
+                      } else {
+                        params.set('scope', 'all')
                       }
+                      router.push(`/search?${params.toString()}`)
                     }}
-                    sx={(theme) => ({
-                      mt: 0.5,
-                      px: 1,
-                      py: 0.75,
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.08) }
-                    })}
                   >
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {item.label}
-                    </Typography>
-                    {item.meta && (
-                      <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
-                        {item.meta}
+                    View all results
+                  </Button>
+                </Box>
+                <Box>
+                  <Typography variant="overline" sx={{ color: 'text.tertiary' }}>
+                    Issues
+                  </Typography>
+                  {grouped.issues.map((item) => (
+                    <Box
+                      key={item.id}
+                      onMouseDown={() => {
+                        if (item.projectKey && item.issueKey) {
+                          router.push(`/projects/${item.projectKey}/issues/${item.issueKey}`)
+                        }
+                      }}
+                      sx={(theme) => ({
+                        mt: 0.5,
+                        px: 1,
+                        py: 0.75,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.08) }
+                      })}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {item.label}
                       </Typography>
-                    )}
-                  </Box>
-                ))}
-              </Box>
-              <Box>
-                <Typography variant="overline" sx={{ color: 'text.tertiary' }}>
-                  Projects
-                </Typography>
-                {grouped.projects.map((item) => (
-                  <Box
-                    key={item.id}
-                    onMouseDown={() => {
-                      if (item.projectKey) router.push(`/projects/${item.projectKey}`)
-                    }}
-                    sx={(theme) => ({
-                      mt: 0.5,
-                      px: 1,
-                      py: 0.75,
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.08) }
-                    })}
-                  >
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {item.label}
-                    </Typography>
-                    {item.meta && (
-                      <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
-                        {item.meta}
+                      {item.meta && (
+                        <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
+                          {item.meta}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
+                <Box>
+                  <Typography variant="overline" sx={{ color: 'text.tertiary' }}>
+                    Projects
+                  </Typography>
+                  {grouped.projects.map((item) => (
+                    <Box
+                      key={item.id}
+                      onMouseDown={() => {
+                        if (item.projectKey) router.push(`/projects/${item.projectKey}`)
+                      }}
+                      sx={(theme) => ({
+                        mt: 0.5,
+                        px: 1,
+                        py: 0.75,
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.08) }
+                      })}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {item.label}
                       </Typography>
-                    )}
-                  </Box>
-                ))}
+                      {item.meta && (
+                        <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
+                          {item.meta}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Box>
               </Box>
-            </Box>
-          )}
-        </Paper>
+            )}
+          </Paper>
+        </ClickAwayListener>
       </Popper>
     </Box>
   )

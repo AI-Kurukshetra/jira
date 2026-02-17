@@ -46,10 +46,10 @@ export default function RegisterPage() {
   const passwordsMatch = password && confirmPassword && password === confirmPassword
 
   return (
-    <AuthSplitLayout title="ProjectHub" subtitle="Ship better. Track smarter." bullets={bullets}>
+    <AuthSplitLayout title="Jira Bacancy" subtitle="Ship better. Track smarter." bullets={bullets}>
       <AuthCard
         title="Create your account"
-        subtitle="Join ProjectHub and organize your work." 
+        subtitle="Join Jira Bacancy and organize your work." 
         footer={
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             Already have an account?{' '}

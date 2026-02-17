@@ -56,7 +56,7 @@ export default function DashboardHomePage() {
           <Divider />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2 }}>
             <Card sx={{ p: 2 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>ProjectHub Core</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Jira Bacancy Core</Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>PROJ</Typography>
             </Card>
           </Box>

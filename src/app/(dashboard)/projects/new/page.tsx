@@ -72,7 +72,7 @@ export default function NewProjectPage() {
         <CardContent sx={{ display: 'grid', gap: 2, maxWidth: 520 }}>
           <TextField
             label="Project Name"
-            placeholder="ProjectHub"
+            placeholder="Jira Bacancy"
             {...register('name')}
             error={Boolean(formState.errors.name)}
             helperText={formState.errors.name?.message}

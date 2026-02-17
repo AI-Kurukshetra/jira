@@ -1,4 +1,4 @@
--- Seed data for ProjectHub Phase 1.
+-- Seed data for Jira Bacancy Phase 1.
 -- This script is safe to run even if no users exist (it will no-op in that case).
 
 WITH first_profile AS (
@@ -10,7 +10,7 @@ WITH first_profile AS (
 core_project AS (
   INSERT INTO projects (name, key, description, project_type, lead_user_id, created_by)
   SELECT
-    'ProjectHub Core',
+    'Jira Bacancy Core',
     'PROJ',
     'Core platform workstreams',
     'software',
@@ -225,7 +225,7 @@ comments_seed AS (
 ),
 notifications_seed AS (
   INSERT INTO notifications (recipient_id, type, title, message)
-  SELECT first_profile.id, 'seed', 'Welcome to ProjectHub', 'Your workspace is ready to explore.'
+  SELECT first_profile.id, 'seed', 'Welcome to Jira Bacancy', 'Your workspace is ready to explore.'
   FROM first_profile
   ON CONFLICT DO NOTHING
   RETURNING id

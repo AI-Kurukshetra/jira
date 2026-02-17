@@ -46,7 +46,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthSplitLayout title="ProjectHub" subtitle="Ship better. Track smarter." bullets={bullets}>
+    <AuthSplitLayout title="Jira Bacancy" subtitle="Ship better. Track smarter." bullets={bullets}>
       <AuthCard
         title="Welcome back"
         subtitle="Log in to continue managing your projects."
@@ -115,7 +115,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <AuthSplitLayout title="ProjectHub" subtitle="Ship better. Track smarter." bullets={[]}>
+        <AuthSplitLayout title="Jira Bacancy" subtitle="Ship better. Track smarter." bullets={[]}>
           <Box />
         </AuthSplitLayout>
       }

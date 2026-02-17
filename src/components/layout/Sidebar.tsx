@@ -46,7 +46,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <BoltIcon sx={{ color: 'primary.main', fontSize: 18 }} />
         {!collapsed && (
           <Typography variant="h6" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}>
-            ProjectHub
+            Jira Bacancy
           </Typography>
         )}
       </Box>

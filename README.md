@@ -1,6 +1,6 @@
-# ProjectHub
+# Jira Bacancy
 
-ProjectHub is a Phase 1 MVP project management and issue tracking platform built with Next.js App Router, Supabase, and MUI. This repository follows strict TypeScript and architecture guidelines, and ships with a dark-first design system.
+Jira Bacancy is a Phase 1 MVP project management and issue tracking platform built with Next.js App Router, Supabase, and MUI. This repository follows strict TypeScript and architecture guidelines, and ships with a dark-first design system.
 
 ## Stack
 - Next.js 15+ (App Router)
