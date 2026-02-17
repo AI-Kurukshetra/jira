@@ -137,6 +137,11 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           onChange={(e) => setFilters({ reporterIds: toArray(e.target.value) as string[] })}
           sx={{ minWidth: 200 }}
         >
+          {(members?.length ?? 0) === 0 && (
+            <MenuItem value="" disabled>
+              No members
+            </MenuItem>
+          )}
           {members?.map((member) => (
             <MenuItem key={member.userId} value={member.userId}>
               {member.profile?.displayName ?? member.profile?.fullName ?? member.userId}

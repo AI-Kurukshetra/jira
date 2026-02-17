@@ -171,6 +171,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
             onClick={() => toggleWatch.mutate(!(watchState?.watching ?? false))}
           >
             {watchState?.watching ? 'Unwatch' : 'Watch'}
+            {typeof watchState?.count === 'number' ? ` (${watchState.count})` : ''}
           </Button>
           <IconButton
             size="small"

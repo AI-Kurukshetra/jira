@@ -182,6 +182,14 @@ export async function POST(request: Request) {
     actionType: 'issue_created'
   })
 
+  const { error: watchError } = await supabase
+    .from('issue_watchers')
+    .insert({ issue_id: issue.id, user_id: user.id })
+
+  if (watchError && watchError.code !== '23505') {
+    logger.warn({ watchError }, 'Failed to auto-watch issue')
+  }
+
   if (issue.assignee_id && issue.assignee_id !== user.id) {
     await createNotification(supabase, {
       recipientId: issue.assignee_id,
