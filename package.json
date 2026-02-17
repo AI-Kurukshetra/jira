@@ -23,6 +23,7 @@
     "@mui/material": "latest",
     "@mui/icons-material": "latest",
     "@mui/lab": "latest",
+    "@mui/x-charts": "latest",
     "@mui/x-date-pickers": "latest",
     "@mui/x-data-grid": "latest",
     "@emotion/react": "latest",

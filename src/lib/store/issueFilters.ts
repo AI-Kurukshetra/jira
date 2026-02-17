@@ -64,7 +64,17 @@ export const useIssueFilterStore = create<IssueFilterState>()(
 )
 
 export function useIssueFilters(projectId: string) {
-  const filters = useIssueFilterStore((state) => state.filtersByProject[projectId] ?? DEFAULT_FILTERS)
+  const raw = useIssueFilterStore((state) => state.filtersByProject[projectId])
+  const filters = {
+    ...DEFAULT_FILTERS,
+    ...(raw ?? {}),
+    assigneeIds: raw?.assigneeIds ?? DEFAULT_FILTERS.assigneeIds,
+    reporterIds: raw?.reporterIds ?? DEFAULT_FILTERS.reporterIds,
+    issueTypes: raw?.issueTypes ?? DEFAULT_FILTERS.issueTypes,
+    priorities: raw?.priorities ?? DEFAULT_FILTERS.priorities,
+    statuses: raw?.statuses ?? DEFAULT_FILTERS.statuses,
+    labels: raw?.labels ?? DEFAULT_FILTERS.labels
+  }
   const setFilters = useIssueFilterStore((state) => state.setFilters)
   const resetFilters = useIssueFilterStore((state) => state.resetFilters)
   return {

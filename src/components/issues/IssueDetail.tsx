@@ -16,6 +16,7 @@ import { CommentEditor } from '@/components/comments/CommentEditor'
 import { CommentList } from '@/components/comments/CommentList'
 import { ActivityItem } from '@/components/comments/ActivityItem'
 import { IssueAttachments } from '@/components/issues/IssueAttachments'
+import { IssueTimeTracking } from '@/components/issues/IssueTimeTracking'
 import { AssigneeSelect } from '@/components/issues/AssigneeSelect'
 import { LabelMultiSelect } from '@/components/issues/LabelMultiSelect'
 import { apiDelete, apiGet, apiPatch, apiPost } from '@/lib/api/client'
@@ -154,7 +155,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
   })
 
   return (
-    <Box sx={{ display: 'grid', gap: 2 }}>
+          <Box sx={{ display: 'grid', gap: 2 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <IssueTypeIcon type={issue.issueType} />
@@ -171,6 +172,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
             onClick={() => toggleWatch.mutate(!(watchState?.watching ?? false))}
           >
             {watchState?.watching ? 'Unwatch' : 'Watch'}
+            {typeof watchState?.count === 'number' ? ` (${watchState.count})` : ''}
           </Button>
           <IconButton
             size="small"
@@ -319,6 +321,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
             </Box>
           </Box>
           <IssueAttachments issueId={issue.id} />
+          <IssueTimeTracking issueId={issue.id} />
         </Box>
       </Box>
     </Box>

@@ -36,6 +36,7 @@ cp .env.local.example .env.local
 - `src/supabase/migrations/005_issue_labels_policy.sql`
 - `src/supabase/migrations/006_login_security_fields.sql`
 - `src/supabase/migrations/007_issue_watchers_policy.sql`
+- `src/supabase/migrations/008_time_entries.sql`
 
 4. (Optional) Seed data
 - Apply `src/supabase/seed.sql`.

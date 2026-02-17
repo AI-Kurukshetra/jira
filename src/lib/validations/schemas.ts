@@ -151,6 +151,13 @@ export const attachmentSchema = z.object({
   storagePath: z.string().min(1).max(300)
 })
 
+export const timeEntrySchema = z.object({
+  issueId: z.string().uuid(),
+  workDate: z.string().date(),
+  minutes: z.number().int().min(1).max(1440),
+  description: z.string().max(2000).optional()
+})
+
 export const notificationSchema = z.object({
   recipientId: z.string().uuid(),
   type: z.string().min(1).max(100),
