@@ -18,8 +18,30 @@ export interface Profile {
   displayName?: string
   avatarUrl?: string
   timezone?: string
+  role?: UserRole
+  isActive?: boolean
+  notificationPrefs?: {
+    email?: boolean
+    inApp?: boolean
+    assignments?: boolean
+    statusChanges?: boolean
+    comments?: boolean
+    mentions?: boolean
+  }
   createdAt: string
   updatedAt: string
+}
+
+export interface AdminUser {
+  id: Id
+  email?: string | null
+  fullName?: string | null
+  displayName?: string | null
+  avatarUrl?: string | null
+  role: UserRole
+  isActive: boolean
+  createdAt?: string | null
+  lastSignInAt?: string | null
 }
 
 export interface Project {
@@ -72,14 +94,17 @@ export interface Label {
 export interface Issue {
   id: Id
   projectId: Id
+  projectKey?: string
   sprintId?: Id | null
   parentIssueId?: Id | null
+  columnId?: Id | null
   issueKey: string
   issueType: IssueType
   summary: string
   description?: string | null
   status: IssueStatus
   priority: IssuePriority
+  labels?: string[]
   assigneeId?: Id | null
   reporterId?: Id | null
   storyPoints?: number | null
@@ -138,6 +163,17 @@ export interface Notification {
   relatedProjectId?: Id | null
   isRead: boolean
   createdAt: string
+}
+
+export interface BoardColumn {
+  id: Id
+  projectId: Id
+  name: string
+  status: IssueStatus
+  position: number
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface IssueWatcher {

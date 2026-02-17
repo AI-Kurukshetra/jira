@@ -1,14 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, TextField, Typography } from '@mui/material'
+import { useRouter } from 'next/navigation'
 
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { registerSchema } from '@/lib/validations/schemas'
+import { registerAction } from '@/app/(auth)/actions'
 import type { z } from 'zod'
 
 type RegisterValues = z.infer<typeof registerSchema>
@@ -18,6 +20,9 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
   })
+  const router = useRouter()
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const bullets = useMemo(
     () => ['Invite your team in minutes', 'Create issues with context', 'Stay aligned with clear priorities'],
@@ -25,7 +30,15 @@ export default function RegisterPage() {
   )
 
   const onSubmit = (values: RegisterValues) => {
-    void values
+    setServerError(null)
+    startTransition(async () => {
+      const result = await registerAction(values)
+      if (!result.success) {
+        setServerError(result.error ?? 'Registration failed')
+        return
+      }
+      router.push('/login?registered=1')
+    })
   }
 
   const password = watch('password')
@@ -72,9 +85,14 @@ export default function RegisterPage() {
               Passwords do not match.
             </Typography>
           )}
+          {serverError && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {serverError}
+            </Typography>
+          )}
 
-          <Button type="submit" variant="contained" size="large">
-            Create account
+          <Button type="submit" variant="contained" size="large" disabled={isPending}>
+            {isPending ? 'Creating account...' : 'Create account'}
           </Button>
         </Box>
       </AuthCard>

@@ -26,10 +26,11 @@ function getGradient(userId: string) {
 
 export function UserAvatar({ userId, fullName, src, size = 'sm' }: UserAvatarProps) {
   const dimension = SIZE_MAP[size]
+  const avatarSrc = src ?? undefined
 
   return (
     <Avatar
-      src={src}
+      {...(avatarSrc ? { src: avatarSrc } : {})}
       alt={fullName}
       sx={{
         width: dimension,

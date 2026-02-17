@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { DM_Sans, Inter, JetBrains_Mono } from 'next/font/google'
 import { NextAppDirEmotionCacheProvider } from '@/lib/theme/EmotionCache'
 import { AppThemeProvider } from '@/lib/theme/ThemeProvider'
+import { QueryProvider } from '@/components/providers/QueryProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -27,7 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${dmSans.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
         <NextAppDirEmotionCacheProvider options={{ key: 'mui' }}>
-          <AppThemeProvider>{children}</AppThemeProvider>
+          <QueryProvider>
+            <AppThemeProvider>{children}</AppThemeProvider>
+          </QueryProvider>
         </NextAppDirEmotionCacheProvider>
       </body>
     </html>

@@ -1,0 +1,51 @@
+'use client'
+
+import { Box } from '@mui/material'
+
+import { SprintSection } from './SprintSection'
+import type { Issue, Sprint } from '@/lib/types'
+
+interface BacklogViewProps {
+  activeSprint?: Sprint | null
+  futureSprints: Sprint[]
+  backlogIssues: Issue[]
+  sprintIssues: Record<string, Issue[]>
+  projectKey?: string
+  onStartSprint?: (sprint: Sprint) => void
+  onCompleteSprint?: (sprint: Sprint) => void
+}
+
+export function BacklogView({ activeSprint, futureSprints, backlogIssues, sprintIssues, projectKey, onStartSprint, onCompleteSprint }: BacklogViewProps) {
+  return (
+    <Box sx={{ display: 'grid', gap: 2 }}>
+      {activeSprint && (
+        <SprintSection
+          title={activeSprint.name}
+          subtitle="Active Sprint"
+          active
+          issues={sprintIssues[activeSprint.id] ?? []}
+          {...(projectKey ? { projectKey } : {})}
+          canComplete
+          onComplete={() => onCompleteSprint?.(activeSprint)}
+        />
+      )}
+      {futureSprints.map((sprint) => (
+        <SprintSection
+          key={sprint.id}
+          title={sprint.name}
+          subtitle="Future Sprint"
+          issues={sprintIssues[sprint.id] ?? []}
+          {...(projectKey ? { projectKey } : {})}
+          canStart
+          onStart={() => onStartSprint?.(sprint)}
+        />
+      ))}
+      <SprintSection
+        title="Backlog"
+        subtitle="Unscheduled"
+        issues={backlogIssues}
+        {...(projectKey ? { projectKey } : {})}
+      />
+    </Box>
+  )
+}

@@ -1,7 +1,6 @@
 'use client'
 
-import { alpha, createTheme, type ThemeOptions } from '@mui/material/styles'
-import type { Shadows } from '@mui/material/styles/shadows'
+import { alpha, createTheme, type ThemeOptions, type Shadows } from '@mui/material/styles'
 
 const darkTokens = {
   bg: {
@@ -83,7 +82,8 @@ const darkThemeOptions: ThemeOptions = {
     text: {
       primary: darkTokens.text.primary,
       secondary: darkTokens.text.secondary,
-      disabled: darkTokens.text.tertiary
+      disabled: darkTokens.text.tertiary,
+      tertiary: darkTokens.text.tertiary
     },
     divider: darkTokens.border.default
   },
@@ -455,7 +455,7 @@ export const lightTheme = createTheme({
     mode: 'light',
     background: { default: '#FAFAFA', paper: '#FFFFFF' },
     primary: { main: '#7C3AED', light: '#8B5CF6', dark: '#5B21B6', contrastText: '#FFFFFF' },
-    text: { primary: '#0A0A0F', secondary: '#6B7280', disabled: '#D1D5DB' },
+    text: { primary: '#0A0A0F', secondary: '#6B7280', disabled: '#D1D5DB', tertiary: '#9CA3AF' },
     divider: '#E5E5EF'
   }
 })

@@ -22,6 +22,9 @@ export const registerSchema = z.object({
     .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
     .regex(passwordRegex, 'Password must include 1 uppercase letter and 1 number'),
   confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword']
 })
 
 export const loginSchema = z.object({
@@ -41,9 +44,25 @@ export const updateProfileSchema = z.object({
   notifications: z
     .object({
       email: z.boolean().optional(),
-      inApp: z.boolean().optional()
+      inApp: z.boolean().optional(),
+      assignments: z.boolean().optional(),
+      statusChanges: z.boolean().optional(),
+      comments: z.boolean().optional(),
+      mentions: z.boolean().optional()
     })
     .optional()
+})
+
+export const adminUserCreateSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(1),
+  role: z.enum(['system_admin', 'project_admin', 'developer', 'viewer']).optional()
+})
+
+export const adminUserUpdateSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(['system_admin', 'project_admin', 'developer', 'viewer']).optional(),
+  isActive: z.boolean().optional()
 })
 
 export const projectSchema = z.object({
@@ -86,6 +105,7 @@ export const issueSchema = z.object({
   projectId: z.string().uuid(),
   sprintId: z.string().uuid().nullable().optional(),
   parentIssueId: z.string().uuid().nullable().optional(),
+  columnId: z.string().uuid().nullable().optional(),
   issueType: z.enum(['story', 'task', 'bug', 'subtask']),
   summary: z.string().min(1).max(SUMMARY_MAX),
   description: z.string().max(DESCRIPTION_MAX).optional(),

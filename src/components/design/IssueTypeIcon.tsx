@@ -27,7 +27,7 @@ const ICONS: Record<IssueType, { Component: typeof BugReportIcon; color: string 
 }
 
 export function IssueTypeIcon({ type, size = 'md' }: IssueTypeIconProps) {
-  const { Component, color } = ICONS[type]
+  const { Component, color } = ICONS[type] ?? ICONS.task
   const iconSize = SIZE_MAP[size]
 
   return (

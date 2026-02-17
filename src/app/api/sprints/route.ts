@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { sprintSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapSprintRow } from '@/lib/api/mappers'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -22,7 +23,8 @@ export async function GET(request: Request) {
     return fail('Failed to fetch sprints', 500)
   }
 
-  return ok(data ?? [])
+  const mapped = (data ?? []).map((sprint) => mapSprintRow(sprint))
+  return ok(mapped)
 }
 
 export async function POST(request: Request) {
@@ -53,5 +55,5 @@ export async function POST(request: Request) {
     return fail('Failed to create sprint', 500)
   }
 
-  return ok(data, 201)
+  return ok(mapSprintRow(data), 201)
 }

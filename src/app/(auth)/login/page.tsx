@@ -1,31 +1,48 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { Suspense, useMemo, useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, FormControlLabel, Switch, TextField, Typography } from '@mui/material'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout'
 import { loginSchema } from '@/lib/validations/schemas'
+import { loginAction } from '@/app/(auth)/actions'
 import type { z } from 'zod'
 
 type LoginValues = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginForm() {
   const { register, handleSubmit, formState } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
   })
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const bullets = useMemo(
     () => ['Track projects with clarity', 'Ship work faster with sprints', 'Collaborate with context-rich issues'],
     []
   )
 
+  const confirmed = searchParams.get('confirmed') === '1'
+  const registered = searchParams.get('registered') === '1'
+
   const onSubmit = (values: LoginValues) => {
-    void values
+    setServerError(null)
+    startTransition(async () => {
+      const result = await loginAction(values)
+      if (!result.success) {
+        setServerError(result.error ?? 'Login failed')
+        return
+      }
+      router.push('/')
+    })
   }
 
   return (
@@ -43,6 +60,13 @@ export default function LoginPage() {
         }
       >
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'grid', gap: 2 }}>
+          {(confirmed || registered) && (
+            <Typography variant="caption" sx={{ color: 'success.main' }}>
+              {confirmed
+                ? 'Email confirmed. You can sign in now.'
+                : 'Account created. Check your email to confirm before signing in.'}
+            </Typography>
+          )}
           <TextField label="Email" type="email" placeholder="you@company.com" {...register('email')} />
           <TextField label="Password" type="password" placeholder="••••••••" {...register('password')} />
 
@@ -63,12 +87,31 @@ export default function LoginPage() {
               {formState.errors.password.message}
             </Typography>
           )}
+          {serverError && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {serverError}
+            </Typography>
+          )}
 
-          <Button type="submit" variant="contained" size="large">
-            Sign in
+          <Button type="submit" variant="contained" size="large" disabled={isPending}>
+            {isPending ? 'Signing in...' : 'Sign in'}
           </Button>
         </Box>
       </AuthCard>
     </AuthSplitLayout>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthSplitLayout title="ProjectHub" subtitle="Ship better. Track smarter." bullets={[]}>
+          <Box />
+        </AuthSplitLayout>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   )
 }

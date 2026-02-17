@@ -3,27 +3,30 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { projectSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapProjectRow } from '@/lib/api/mappers'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const { data, error: fetchError } = await supabase.from('projects').select('*').eq('id', params.id).single()
+  const { data, error: fetchError } = await supabase.from('projects').select('*').eq('id', id).single()
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch project')
     return fail('Failed to fetch project', 500)
   }
 
-  return ok(data)
+  return ok(mapProjectRow(data))
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -44,7 +47,7 @@ export async function PATCH(request: Request, { params }: Params) {
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate
     })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('*')
     .single()
 
@@ -53,23 +56,39 @@ export async function PATCH(request: Request, { params }: Params) {
     return fail('Failed to update project', 500)
   }
 
-  return ok(data)
+  return ok(mapProjectRow(data))
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    logger.error({ profileError }, 'Failed to verify user role')
+    return fail('Failed to verify permissions', 500)
+  }
+
+  if (profile?.role !== 'system_admin') {
+    return fail('Forbidden', 403)
+  }
+
   const { error: deleteError } = await supabase
     .from('projects')
     .update({ status: 'deleted', deleted_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (deleteError) {
     logger.error({ deleteError }, 'Failed to delete project')
     return fail('Failed to delete project', 500)
   }
 
-  return ok({ id: params.id })
+  return ok({ id })
 }

@@ -41,7 +41,7 @@ export function AuthSplitLayout({ title, subtitle, bullets, children }: AuthSpli
               fontWeight: 700
             }}
           >
-            ProjectHub
+            {title}
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
             {subtitle}
