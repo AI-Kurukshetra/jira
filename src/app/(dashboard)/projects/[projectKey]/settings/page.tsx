@@ -7,6 +7,7 @@ import { use } from 'react'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
 import { apiDelete, apiPatch } from '@/lib/api/client'
+import { ProjectSettingsTabs } from '@/components/projects/ProjectSettingsTabs'
 
 export default function ProjectSettingsPage({ params }: { params: Promise<{ projectKey: string }> }) {
   const { projectKey } = use(params)
@@ -76,6 +77,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ proj
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       <SectionHeader title="Project Settings" subtitle="Update project details and preferences." />
+      <ProjectSettingsTabs projectKey={projectKey} active="general" />
       <Card>
         <CardContent sx={{ display: 'grid', gap: 2, maxWidth: 520 }}>
           <Typography variant="h3">General</Typography>

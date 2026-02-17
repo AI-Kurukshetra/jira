@@ -4,7 +4,7 @@ import SearchIcon from '@mui/icons-material/Search'
 import { Box, Button, InputBase, Paper, Popper, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { motion } from 'framer-motion'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiGet } from '@/lib/api/client'
 import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
@@ -34,7 +34,7 @@ const MotionPaper = motion(Paper)
 export function GlobalSearch({ collapsed }: GlobalSearchProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
-  const anchorRef = useRef<HTMLDivElement | null>(null)
+  const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -79,7 +79,7 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
       projectKey: projectRow.key
     }))
     return [...issues, ...projects]
-  }, [data, project?.key])
+  }, [data, queryProjectKey])
 
   const grouped = useMemo(() => {
     const issues = results.filter((item) => item.type === 'issue')
@@ -90,7 +90,7 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
   const hasResults = results.length > 0
 
   return (
-    <Box ref={anchorRef} sx={{ position: 'relative' }}>
+    <Box ref={setAnchorEl} sx={{ position: 'relative' }}>
       <MotionPaper
         layout
         sx={(theme) => ({
@@ -141,7 +141,7 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
         </Box>
       </MotionPaper>
 
-      <Popper open={open} anchorEl={anchorRef.current} placement="bottom" sx={{ zIndex: 1300 }}>
+      <Popper open={open} anchorEl={anchorEl} placement="bottom" sx={{ zIndex: 1300 }}>
         <Paper
           elevation={3}
           sx={(theme) => ({

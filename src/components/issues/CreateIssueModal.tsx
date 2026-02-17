@@ -3,8 +3,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Typography } from '@mui/material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Controller, useForm } from 'react-hook-form'
-import { useEffect } from 'react'
+import { Controller, useForm, useWatch } from 'react-hook-form'
+import { useEffect, useMemo } from 'react'
 
 import { issueSchema } from '@/lib/validations/schemas'
 import { apiPost } from '@/lib/api/client'
@@ -17,6 +17,7 @@ import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { format } from 'date-fns'
 import { useBoardColumns } from '@/lib/hooks/useBoardColumns'
+import { useIssues } from '@/lib/hooks/useIssues'
 
 type IssueFormValues = z.infer<typeof issueSchema>
 
@@ -36,7 +37,7 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
   const queryClient = useQueryClient()
   const { data: projects } = useProjects()
 
-  const { control, register, handleSubmit, reset, formState, watch, setValue } = useForm<IssueFormValues>({
+  const { control, register, handleSubmit, reset, formState, setValue } = useForm<IssueFormValues>({
     resolver: zodResolver(issueSchema),
     defaultValues: {
       projectId: defaultProjectId ?? '',
@@ -50,8 +51,9 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
     }
   })
 
-  const selectedProjectId = watch('projectId')
-  const selectedColumnId = watch('columnId')
+  const selectedProjectId = useWatch({ control, name: 'projectId' })
+  const selectedColumnId = useWatch({ control, name: 'columnId' })
+  const selectedIssueType = useWatch({ control, name: 'issueType' })
 
   useEffect(() => {
     if (!open) return
@@ -83,9 +85,14 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
     createIssue.mutate(values)
   }
 
-  const projectOptions = projects ?? []
+  const projectOptions = useMemo(() => projects ?? [], [projects])
   const { data: sprints } = useSprints(selectedProjectId)
+  const { data: projectIssues } = useIssues(selectedProjectId ? { projectId: selectedProjectId } : undefined)
   const { data: columns } = useBoardColumns(selectedProjectId)
+  const parentOptions = useMemo(
+    () => (projectIssues ?? []).filter((issue) => issue.issueType !== 'subtask'),
+    [projectIssues]
+  )
 
   useEffect(() => {
     if (!selectedProjectId && projectOptions.length === 1) {
@@ -209,6 +216,33 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
             </TextField>
           )}
         />
+        {selectedIssueType === 'subtask' && (
+          <Controller
+            name="parentIssueId"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                select
+                label="Parent Issue"
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(event.target.value || null)}
+                disabled={!selectedProjectId}
+                helperText={!selectedProjectId ? 'Select a project to choose a parent issue' : undefined}
+              >
+                {(parentOptions.length ?? 0) === 0 && (
+                  <MenuItem value="" disabled>
+                    No parent issues available
+                  </MenuItem>
+                )}
+                {parentOptions.map((issue) => (
+                  <MenuItem key={issue.id} value={issue.id}>
+                    {issue.issueKey} — {issue.summary}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+        )}
         <TextField
           label="Summary"
           placeholder="Short, clear description"
@@ -223,7 +257,13 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
           placeholder="Optional details"
           {...register('description')}
         />
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: selectedIssueType === 'bug' ? '1fr' : '1fr 1fr',
+            gap: 2
+          }}
+        >
           <Controller
             name="priority"
             control={control}
@@ -274,14 +314,16 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
           )}
         />
         <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-          <TextField
-            label="Story Points"
-            type="number"
-            inputProps={{ min: 0, max: 99 }}
-            {...register('storyPoints', {
-              setValueAs: (value) => (value === '' ? undefined : Number(value))
-            })}
-          />
+          {selectedIssueType !== 'bug' && (
+            <TextField
+              label="Story Points"
+              type="number"
+              inputProps={{ min: 0, max: 99 }}
+              {...register('storyPoints', {
+                setValueAs: (value) => (value === '' ? undefined : Number(value))
+              })}
+            />
+          )}
           <Controller
             name="dueDate"
             control={control}
@@ -293,6 +335,7 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
                   onChange={(value) => {
                     field.onChange(value ? format(value, 'yyyy-MM-dd') : undefined)
                   }}
+                  minDate={new Date()}
                   slotProps={{ textField: { size: 'small' } }}
                 />
               </LocalizationProvider>

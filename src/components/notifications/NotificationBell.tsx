@@ -6,6 +6,7 @@ import { useState } from 'react'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiPatch, apiPost } from '@/lib/api/client'
+import { useRouter } from 'next/navigation'
 
 interface NotificationItem {
   id: string
@@ -18,6 +19,7 @@ interface NotificationItem {
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   const { data } = useQuery({
     queryKey: ['notifications'],
@@ -135,6 +137,15 @@ export function NotificationBell() {
                 No notifications yet.
               </Typography>
             )}
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: 'primary.main', cursor: 'pointer' }}
+              onClick={() => router.push('/notifications')}
+            >
+              View all
+            </Typography>
           </Box>
         </Paper>
       )}

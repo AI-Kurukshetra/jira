@@ -13,11 +13,23 @@ interface SprintSectionProps {
   projectKey?: string
   onStart?: () => void
   onComplete?: () => void
+  onAddIssue?: () => void
   canStart?: boolean
   canComplete?: boolean
 }
 
-export function SprintSection({ title, subtitle, active, issues, projectKey, onStart, onComplete, canStart, canComplete }: SprintSectionProps) {
+export function SprintSection({
+  title,
+  subtitle,
+  active,
+  issues,
+  projectKey,
+  onStart,
+  onComplete,
+  onAddIssue,
+  canStart,
+  canComplete
+}: SprintSectionProps) {
   return (
     <Box
       sx={(theme) => ({
@@ -80,6 +92,11 @@ export function SprintSection({ title, subtitle, active, issues, projectKey, onS
               : {})}
           />
         ))}
+        {onAddIssue && (
+          <Button variant="text" size="small" onClick={onAddIssue} sx={{ justifySelf: 'flex-start' }}>
+            + Add issue
+          </Button>
+        )}
       </Box>
     </Box>
   )

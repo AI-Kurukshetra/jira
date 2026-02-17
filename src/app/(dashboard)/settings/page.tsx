@@ -2,21 +2,33 @@
 
 import { Box, Button, Card, CardContent, FormControlLabel, Switch, TextField, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useMe } from '@/lib/hooks/useMe'
 import { apiPatch } from '@/lib/api/client'
 import Link from 'next/link'
+import { UserAvatar } from '@/components/design/UserAvatar'
+import { createClient } from '@/lib/supabase/client'
+import { ALLOWED_AVATAR_TYPES, AVATARS_BUCKET, MAX_AVATAR_BYTES } from '@/config/constants'
 
 export default function UserSettingsPage() {
   const { data } = useMe()
   const profile = data?.profile
+  const queryClient = useQueryClient()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSaving, setPasswordSaving] = useState(false)
 
   const [fullName, setFullName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [timezone, setTimezone] = useState('UTC')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [prefs, setPrefs] = useState({
     email: true,
     inApp: true,
@@ -53,7 +65,67 @@ export default function UserSettingsPage() {
     if (!result.success) {
       setError(result.error)
     }
+    await queryClient.invalidateQueries({ queryKey: ['me'] })
     setSaving(false)
+  }
+
+  const onAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !data?.user.id) return
+    setAvatarError(null)
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setAvatarError('Only PNG or JPG images are allowed.')
+      return
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError(`Avatar must be under ${Math.round(MAX_AVATAR_BYTES / (1024 * 1024))}MB.`)
+      return
+    }
+
+    setAvatarUploading(true)
+    const supabase = createClient()
+    const storagePath = `${data.user.id}/${Date.now()}-${file.name}`
+
+    const { error: uploadError } = await supabase.storage.from(AVATARS_BUCKET).upload(storagePath, file, {
+      upsert: true
+    })
+    if (uploadError) {
+      setAvatarError(uploadError.message)
+      setAvatarUploading(false)
+      return
+    }
+
+    const { data: publicData } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(storagePath)
+    const result = await apiPatch('/api/profile', { avatarUrl: publicData.publicUrl })
+    if (!result.success) {
+      setAvatarError(result.error)
+      setAvatarUploading(false)
+      return
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['me'] })
+    setAvatarUploading(false)
+  }
+
+  const onChangePassword = async () => {
+    setPasswordSaving(true)
+    setPasswordError(null)
+    const result = await apiPatch('/api/profile/password', {
+      currentPassword,
+      newPassword,
+      confirmPassword
+    })
+    if (!result.success) {
+      setPasswordError(result.error)
+      setPasswordSaving(false)
+      return
+    }
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordSaving(false)
   }
 
   return (
@@ -63,6 +135,25 @@ export default function UserSettingsPage() {
       <Card>
         <CardContent sx={{ display: 'grid', gap: 2, maxWidth: 520 }}>
           <Typography variant="h3">Profile</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <UserAvatar
+              userId={data?.user.id ?? 'user'}
+              fullName={profile?.displayName ?? profile?.fullName ?? 'User'}
+              size="lg"
+              {...(profile?.avatarUrl ? { src: profile.avatarUrl } : {})}
+            />
+            <Box sx={{ display: 'grid', gap: 0.5 }}>
+              <Button component="label" variant="outlined" size="small" disabled={avatarUploading}>
+                {avatarUploading ? 'Uploading...' : 'Upload Avatar'}
+                <input type="file" hidden onChange={onAvatarChange} />
+              </Button>
+              {avatarError && (
+                <Typography variant="caption" sx={{ color: 'error.main' }}>
+                  {avatarError}
+                </Typography>
+              )}
+            </Box>
+          </Box>
           <TextField label="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           <TextField label="Display Name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           <TextField label="Timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
@@ -110,6 +201,40 @@ export default function UserSettingsPage() {
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </Box>
+
+      <Card>
+        <CardContent sx={{ display: 'grid', gap: 2, maxWidth: 520 }}>
+          <Typography variant="h3">Change Password</Typography>
+          <TextField
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+          <TextField
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <TextField
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+          {passwordError && (
+            <Typography variant="caption" sx={{ color: 'error.main' }}>
+              {passwordError}
+            </Typography>
+          )}
+          <Box>
+            <Button variant="outlined" size="small" onClick={onChangePassword} disabled={passwordSaving}>
+              {passwordSaving ? 'Updating...' : 'Update Password'}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {profile?.role === 'system_admin' && (
         <Card>

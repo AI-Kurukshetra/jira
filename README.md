@@ -28,14 +28,25 @@ npm install
 cp .env.local.example .env.local
 ```
 
-3. Run Supabase migration
-- Apply `src/supabase/migrations/001_initial_schema.sql` to your Supabase database.
+3. Run Supabase migrations (in order)
+- `src/supabase/migrations/001_initial_schema.sql`
+- `src/supabase/migrations/002_profiles_admin_fields.sql`
+- `src/supabase/migrations/003_issue_sequences_rls.sql`
+- `src/supabase/migrations/004_board_columns.sql`
+- `src/supabase/migrations/005_issue_labels_policy.sql`
+- `src/supabase/migrations/006_login_security_fields.sql`
+- `src/supabase/migrations/007_issue_watchers_policy.sql`
 
 4. (Optional) Seed data
 - Apply `src/supabase/seed.sql`.
 - This seed script is safe to run even if no users exist. It only inserts data when at least one profile is present.
 
-5. Start the dev server
+5. Configure storage + email
+- Create a Supabase Storage bucket named `attachments` (private).
+- Create a Supabase Storage bucket named `avatars` (public).
+- (Email) If using Resend, set `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_FROM_NAME` in `.env.local`.
+
+6. Start the dev server
 ```
 npm run dev
 ```

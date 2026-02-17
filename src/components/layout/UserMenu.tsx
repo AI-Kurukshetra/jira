@@ -42,11 +42,11 @@ export function UserMenu() {
         MenuListProps={{ onClick: () => setAnchorEl(null) }}
       >
         <MenuItem onClick={onSettings}>
-          <SettingsIcon fontSize="small" style={{ marginRight: 8 }} />
+          <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
           Settings
         </MenuItem>
         <MenuItem onClick={onLogout}>
-          <LogoutIcon fontSize="small" style={{ marginRight: 8 }} />
+          <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
           Logout
         </MenuItem>
       </Menu>

@@ -4,6 +4,7 @@ import AddIcon from '@mui/icons-material/Add'
 import BoltIcon from '@mui/icons-material/Bolt'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import HomeIcon from '@mui/icons-material/Home'
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { label: 'Home', href: '/', icon: HomeIcon },
   { label: 'My Work', href: '/my-work', icon: PersonOutlineIcon },
   { label: 'Projects', href: '/projects', icon: FolderOpenIcon },
+  { label: 'Notifications', href: '/notifications', icon: NotificationsNoneIcon },
   { label: 'Settings', href: '/settings', icon: SettingsIcon }
 ]
 

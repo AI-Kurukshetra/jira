@@ -38,8 +38,8 @@ export default function BoardPage({ params }: { params: Promise<{ projectKey: st
 
   const filteredIssues = useMemo(() => {
     if (!data) return []
-    return applyIssueFilters(data, filters, me?.user.id)
-  }, [data, filters, me?.user.id])
+    return applyIssueFilters(data, filters, me?.user.id, activeSprint?.id)
+  }, [data, filters, me?.user.id, activeSprint?.id])
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>

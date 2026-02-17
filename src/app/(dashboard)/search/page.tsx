@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useMemo } from 'react'
-import { Box, Card, CardContent, Typography } from '@mui/material'
+import { Box, Button, Card, CardContent, Typography } from '@mui/material'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 
@@ -59,6 +59,32 @@ function SearchResults() {
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button
+          size="small"
+          variant={scope === 'all' ? 'contained' : 'outlined'}
+          onClick={() => {
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('scope', 'all')
+            router.push(`/search?${params.toString()}`)
+          }}
+        >
+          All Results
+        </Button>
+        <Button
+          size="small"
+          variant={scope === 'project' ? 'contained' : 'outlined'}
+          disabled={!projectId}
+          onClick={() => {
+            if (!projectId) return
+            const params = new URLSearchParams(searchParams.toString())
+            params.set('scope', 'project')
+            router.push(`/search?${params.toString()}`)
+          }}
+        >
+          Current Project
+        </Button>
+      </Box>
       <Card>
         <CardContent sx={{ display: 'grid', gap: 1 }}>
           <Typography variant="h3">Issues</Typography>

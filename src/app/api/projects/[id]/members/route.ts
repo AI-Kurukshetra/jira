@@ -3,6 +3,9 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { projectMemberSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { createNotification } from '@/lib/services/notifications'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { z } from 'zod'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -63,14 +66,40 @@ export async function POST(request: Request, { params }: Params) {
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = projectMemberSchema.safeParse({ ...payload, projectId: id })
+  const memberCreateSchema = z
+    .object({
+      projectId: z.string().uuid(),
+      userId: z.string().uuid().optional(),
+      email: z.string().email().optional(),
+      role: z.enum(['project_admin', 'developer', 'viewer'])
+    })
+    .refine((data) => Boolean(data.userId || data.email), { message: 'userId or email is required' })
+
+  const parsed = memberCreateSchema.safeParse({ ...payload, projectId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
+
+  let userId = parsed.data.userId
+  if (!userId && parsed.data.email) {
+    const admin = createAdminClient()
+    const { data: authUser, error: userError } = await admin
+      .schema('auth')
+      .from('users')
+      .select('id')
+      .eq('email', parsed.data.email)
+      .maybeSingle()
+    if (userError || !authUser?.id) {
+      return fail('User not found for that email.', 400)
+    }
+    userId = authUser.id
+  }
+
+  if (!userId) return fail('User not found.', 400)
 
   const { data, error: insertError } = await supabase
     .from('project_members')
     .insert({
       project_id: id,
-      user_id: parsed.data.userId,
+      user_id: userId,
       role: parsed.data.role
     })
     .select('*')
@@ -80,6 +109,16 @@ export async function POST(request: Request, { params }: Params) {
     logger.error({ insertError }, 'Failed to add project member')
     return fail('Failed to add project member', 500)
   }
+
+  const { data: project } = await supabase.from('projects').select('name').eq('id', id).single()
+  await createNotification(supabase, {
+    recipientId: userId,
+    type: 'project_member_added',
+    title: 'Added to project',
+    message: `You were added to ${project?.name ?? 'a project'}.`,
+    relatedProjectId: id,
+    relatedIssueId: null
+  })
 
   return ok(data, 201)
 }

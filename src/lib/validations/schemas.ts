@@ -29,12 +29,29 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email'),
-  password: z.string().min(1, 'Password is required')
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional()
 })
 
 export const resetPasswordSchema = z.object({
   email: z.string().email('Invalid email')
 })
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
+    newPassword: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`)
+      .regex(passwordRegex, 'Password must include 1 uppercase letter and 1 number'),
+    confirmPassword: z.string()
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword']
+  })
 
 export const updateProfileSchema = z.object({
   fullName: z.string().min(1).optional(),

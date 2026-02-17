@@ -3,7 +3,7 @@
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Box } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { KanbanColumn } from '@/components/board/KanbanColumn'
@@ -89,11 +89,14 @@ export function KanbanBoard({ initialIssues = [], columns, onAddIssue, projectKe
     return map
   }, [columns])
 
-  const resolveColumnId = (issue: IssueWithAssignee) => {
-    if (issue.columnId && columnsById.has(issue.columnId)) return issue.columnId
-    const fallback = columnsByStatus[issue.status]?.[0]?.id ?? columns[0]?.id
-    return fallback
-  }
+  const resolveColumnId = useCallback(
+    (issue: IssueWithAssignee) => {
+      if (issue.columnId && columnsById.has(issue.columnId)) return issue.columnId
+      const fallback = columnsByStatus[issue.status]?.[0]?.id ?? columns[0]?.id
+      return fallback
+    },
+    [columns, columnsById, columnsByStatus]
+  )
 
   const grouped = useMemo(() => {
     const map: Record<string, IssueWithAssignee[]> = {}
