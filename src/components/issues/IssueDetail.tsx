@@ -4,6 +4,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import { Box, Divider, IconButton, MenuItem, Select, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 
 import { IssueKey } from '@/components/design/IssueKey'
 import { IssueTypeIcon } from '@/components/design/IssueTypeIcon'
@@ -24,6 +25,7 @@ import { useMe } from '@/lib/hooks/useMe'
 
 interface IssueDetailProps {
   issue: IssueWithAssignee
+  projectKey?: string
 }
 
 const STATUS_OPTIONS: Record<IssueStatus, IssueStatus[]> = {
@@ -34,7 +36,7 @@ const STATUS_OPTIONS: Record<IssueStatus, IssueStatus[]> = {
 
 const PRIORITY_OPTIONS: IssuePriority[] = ['highest', 'high', 'medium', 'low', 'lowest']
 
-export function IssueDetail({ issue }: IssueDetailProps) {
+export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
   const [tab, setTab] = useState(0)
   const [summary, setSummary] = useState(issue.summary)
   const [status, setStatus] = useState<IssueStatus>(issue.status)
@@ -43,6 +45,7 @@ export function IssueDetail({ issue }: IssueDetailProps) {
   const [labels, setLabels] = useState<string[]>([])
 
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { data: me } = useMe()
   const { data: comments = [] } = useComments(issue.id)
   const { data: activity = [] } = useActivity(issue.id)
@@ -123,7 +126,16 @@ export function IssueDetail({ issue }: IssueDetailProps) {
             {issue.issueType}
           </Typography>
         </Box>
-        <IconButton size="small">
+        <IconButton
+          size="small"
+          onClick={() => {
+            if (projectKey) {
+              router.push(`/projects/${projectKey}/board`)
+              return
+            }
+            router.back()
+          }}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -141,7 +153,16 @@ export function IssueDetail({ issue }: IssueDetailProps) {
               sx: { fontSize: '1.25rem', fontWeight: 600 }
             }}
           />
-          <CommentEditor placeholder="Describe the issue..." />
+          <CommentEditor
+            key={`description-${issue.id}`}
+            placeholder="Describe the issue..."
+            submitLabel="Save description"
+            initialContent={issue.description ?? ''}
+            clearOnSubmit={false}
+            onSubmit={async (body) => {
+              await updateIssue.mutateAsync({ description: body })
+            }}
+          />
 
           <Box>
             <Tabs value={tab} onChange={(_, value) => setTab(value)}>

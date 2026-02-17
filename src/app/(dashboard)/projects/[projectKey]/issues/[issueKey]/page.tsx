@@ -1,3 +1,5 @@
+'use client'
+
 import { Box } from '@mui/material'
 
 import { IssueDetail } from '@/components/issues/IssueDetail'
@@ -14,7 +16,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueKey
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
       <SectionHeader title="Issue Detail" subtitle="Edit fields, add comments, and review history." />
-      {issue ? <IssueDetail issue={issue} /> : <LoadingSkeleton rows={6} height={28} />}
+      {issue ? <IssueDetail issue={issue} projectKey={projectKey} /> : <LoadingSkeleton rows={6} height={28} />}
     </Box>
   )
 }

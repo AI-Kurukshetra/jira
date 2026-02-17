@@ -17,13 +17,17 @@ interface CommentEditorProps {
   onSubmit?: (body: string) => Promise<void> | void
   submitLabel?: string
   isSubmitting?: boolean
+  initialContent?: string
+  clearOnSubmit?: boolean
 }
 
 export function CommentEditor({
   placeholder = 'Write a comment...',
   onSubmit,
   submitLabel = 'Post comment',
-  isSubmitting
+  isSubmitting,
+  initialContent,
+  clearOnSubmit = true
 }: CommentEditorProps) {
   const extensions = useMemo(
     () => [
@@ -39,6 +43,8 @@ export function CommentEditor({
 
   const editor = useEditor({
     extensions,
+    immediatelyRender: false,
+    ...(initialContent !== undefined ? { content: initialContent } : {}),
     editorProps: {
       attributes: {
         class: 'projecthub-editor'
@@ -52,8 +58,10 @@ export function CommentEditor({
     if (!onSubmit) return
     const text = editor.getText().trim()
     if (!text) return
-    await onSubmit(text)
-    editor.commands.clearContent()
+    await onSubmit(editor.getHTML())
+    if (clearOnSubmit) {
+      editor.commands.clearContent()
+    }
   }
 
   return (
