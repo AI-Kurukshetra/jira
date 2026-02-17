@@ -95,19 +95,33 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch comments', 500)
   }
 
-  const mapped = (data ?? []).map((comment) => ({
+  const toProfile = (value: unknown) => {
+    if (Array.isArray(value)) {
+      return value[0] ?? null
+    }
+    return value ?? null
+  }
+
+  const mapped = (data ?? []).map((comment) => {
+    const rawAuthor = toProfile((comment as { author?: unknown }).author)
+    const author = rawAuthor as
+      | { full_name?: string | null; display_name?: string | null; avatar_url?: string | null }
+      | null
+
+    return {
     id: comment.id,
     body: comment.body,
     createdAt: comment.created_at,
     isDeleted: comment.is_deleted,
-    author: comment.author
+    author: author
       ? {
-          fullName: comment.author.full_name,
-          displayName: comment.author.display_name,
-          avatarUrl: comment.author.avatar_url
+          fullName: author.full_name ?? null,
+          displayName: author.display_name ?? null,
+          avatarUrl: author.avatar_url ?? null
         }
       : null
-  }))
+    }
+  })
 
   return ok(mapped)
 }

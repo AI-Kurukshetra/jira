@@ -24,20 +24,34 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch project members', 500)
   }
 
-  const mapped = (data ?? []).map((member) => ({
+  const toProfile = (value: unknown) => {
+    if (Array.isArray(value)) {
+      return value[0] ?? null
+    }
+    return value ?? null
+  }
+
+  const mapped = (data ?? []).map((member) => {
+    const rawProfile = toProfile((member as { profiles?: unknown }).profiles)
+    const profile = rawProfile as
+      | { full_name?: string | null; display_name?: string | null; avatar_url?: string | null }
+      | null
+
+    return {
     id: member.id,
     projectId: member.project_id,
     userId: member.user_id,
     role: member.role,
     joinedAt: member.joined_at,
-    profile: member.profiles
+    profile: profile
       ? {
-          fullName: member.profiles.full_name,
-          displayName: member.profiles.display_name,
-          avatarUrl: member.profiles.avatar_url
+          fullName: profile.full_name ?? null,
+          displayName: profile.display_name ?? null,
+          avatarUrl: profile.avatar_url ?? null
         }
       : null
-  }))
+    }
+  })
 
   return ok(mapped)
 }

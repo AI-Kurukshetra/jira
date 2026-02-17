@@ -1,7 +1,5 @@
 'use client'
 
-import { Box } from '@mui/material'
-
 import { BacklogView } from '@/components/backlog/BacklogView'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
