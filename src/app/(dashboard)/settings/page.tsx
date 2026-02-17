@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useMe } from '@/lib/hooks/useMe'
 import { apiPatch } from '@/lib/api/client'
+import Link from 'next/link'
 
 export default function UserSettingsPage() {
   const { data } = useMe()
@@ -109,6 +110,20 @@ export default function UserSettingsPage() {
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
       </Box>
+
+      {profile?.role === 'system_admin' && (
+        <Card>
+          <CardContent sx={{ display: 'grid', gap: 1 }}>
+            <Typography variant="h3">Admin</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Manage users, roles, and account status.
+            </Typography>
+            <Button component={Link} href="/settings/admin" variant="outlined" size="small" sx={{ width: 'fit-content' }}>
+              Open Admin Users
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   )
 }

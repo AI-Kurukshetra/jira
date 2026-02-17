@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { updateProfileSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapProfileRow } from '@/lib/api/mappers'
 
 export async function GET() {
   const supabase = await createClient()
@@ -15,7 +16,7 @@ export async function GET() {
     return fail('Failed to fetch profile', 500)
   }
 
-  return ok(data)
+  return ok(mapProfileRow(data))
 }
 
 export async function PATCH(request: Request) {
@@ -45,5 +46,5 @@ export async function PATCH(request: Request) {
     return fail('Failed to update profile', 500)
   }
 
-  return ok(data)
+  return ok(mapProfileRow(data))
 }

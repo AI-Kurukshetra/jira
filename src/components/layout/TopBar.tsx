@@ -6,12 +6,15 @@ import { Box, Breadcrumbs, Button, Typography } from '@mui/material'
 import { GlobalSearch } from './GlobalSearch'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { UserMenu } from '@/components/layout/UserMenu'
+import { useCreateIssue } from '@/components/issues/CreateIssueProvider'
 
 interface TopBarProps {
   collapsed: boolean
 }
 
 export function TopBar({ collapsed }: TopBarProps) {
+  const { openCreateIssue } = useCreateIssue()
+
   return (
     <Box
       sx={(theme) => ({
@@ -40,7 +43,9 @@ export function TopBar({ collapsed }: TopBarProps) {
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Button variant="contained" size="small" startIcon={<AddIcon />}>Create</Button>
+        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => openCreateIssue()}>
+          Create
+        </Button>
         <NotificationBell />
         <UserMenu />
       </Box>

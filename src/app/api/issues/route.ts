@@ -5,6 +5,7 @@ import { issueSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
 import { createNotification } from '@/lib/services/notifications'
+import { mapIssueRow } from '@/lib/api/mappers'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -38,16 +39,7 @@ export async function GET(request: Request) {
     return fail('Failed to fetch issues', 500)
   }
 
-  const mapped = (data ?? []).map((issue) => ({
-    ...issue,
-    assignee: issue.assignee
-      ? {
-          fullName: issue.assignee.full_name,
-          displayName: issue.assignee.display_name,
-          avatarUrl: issue.assignee.avatar_url
-        }
-      : null
-  }))
+  const mapped = (data ?? []).map((issue) => mapIssueRow(issue))
 
   return ok(mapped)
 }
@@ -102,5 +94,5 @@ export async function POST(request: Request) {
     })
   }
 
-  return ok(issue, 201)
+  return ok(mapIssueRow(issue), 201)
 }

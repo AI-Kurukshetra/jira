@@ -44,9 +44,25 @@ export const updateProfileSchema = z.object({
   notifications: z
     .object({
       email: z.boolean().optional(),
-      inApp: z.boolean().optional()
+      inApp: z.boolean().optional(),
+      assignments: z.boolean().optional(),
+      statusChanges: z.boolean().optional(),
+      comments: z.boolean().optional(),
+      mentions: z.boolean().optional()
     })
     .optional()
+})
+
+export const adminUserCreateSchema = z.object({
+  email: z.string().email(),
+  fullName: z.string().min(1),
+  role: z.enum(['system_admin', 'project_admin', 'developer', 'viewer']).optional()
+})
+
+export const adminUserUpdateSchema = z.object({
+  userId: z.string().uuid(),
+  role: z.enum(['system_admin', 'project_admin', 'developer', 'viewer']).optional(),
+  isActive: z.boolean().optional()
 })
 
 export const projectSchema = z.object({

@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { sprintSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapSprintRow } from '@/lib/api/mappers'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch sprint', 500)
   }
 
-  return ok(data)
+  return ok(mapSprintRow(data))
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -53,7 +54,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return fail('Failed to update sprint', 500)
   }
 
-  return ok(data)
+  return ok(mapSprintRow(data))
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

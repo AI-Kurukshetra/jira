@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { logger } from '@/lib/logger'
+import { mapProfileRow } from '@/lib/api/mappers'
 
 export async function GET() {
   const supabase = await createClient()
@@ -19,5 +20,5 @@ export async function GET() {
     return fail('Failed to fetch profile', 500)
   }
 
-  return ok({ user, profile })
+  return ok({ user, profile: mapProfileRow(profile) })
 }

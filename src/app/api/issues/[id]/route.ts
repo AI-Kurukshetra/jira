@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
 import { createNotification } from '@/lib/services/notifications'
 import { isValidTransition } from '@/lib/utils'
+import { mapIssueRow } from '@/lib/api/mappers'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -24,7 +25,7 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch issue', 500)
   }
 
-  return ok(data)
+  return ok(mapIssueRow(data))
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -140,7 +141,7 @@ export async function PATCH(request: Request, { params }: Params) {
     )
   }
 
-  return ok(updated)
+  return ok(mapIssueRow(updated))
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

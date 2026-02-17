@@ -6,6 +6,7 @@ import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
 import { useSprints } from '@/lib/hooks/useSprints'
 import { useIssues } from '@/lib/hooks/useIssues'
+import { useCreateIssue } from '@/components/issues/CreateIssueProvider'
 
 interface BacklogSectionProps {
   projectKey: string
@@ -13,6 +14,7 @@ interface BacklogSectionProps {
 
 export function BacklogSection({ projectKey }: BacklogSectionProps) {
   const { data: project } = useProjectByKey(projectKey)
+  const { openCreateIssue } = useCreateIssue()
   const { data: sprints, isLoading: sprintsLoading } = useSprints(project?.id)
   const { data: issues, isLoading: issuesLoading } = useIssues(
     project?.id ? { projectId: project.id } : undefined
@@ -35,6 +37,7 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
         title="No issues yet"
         description="Create issues to start planning your backlog."
         actionLabel="Create issue"
+        onAction={() => openCreateIssue(project?.id)}
       />
     )
   }

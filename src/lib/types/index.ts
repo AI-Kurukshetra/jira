@@ -18,6 +18,8 @@ export interface Profile {
   displayName?: string
   avatarUrl?: string
   timezone?: string
+  role?: UserRole
+  isActive?: boolean
   notificationPrefs?: {
     email?: boolean
     inApp?: boolean
@@ -28,6 +30,18 @@ export interface Profile {
   }
   createdAt: string
   updatedAt: string
+}
+
+export interface AdminUser {
+  id: Id
+  email?: string | null
+  fullName?: string | null
+  displayName?: string | null
+  avatarUrl?: string | null
+  role: UserRole
+  isActive: boolean
+  createdAt?: string | null
+  lastSignInAt?: string | null
 }
 
 export interface Project {

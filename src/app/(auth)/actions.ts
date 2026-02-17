@@ -36,7 +36,7 @@ export async function loginAction(values: unknown): Promise<ActionResult> {
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password
   })
@@ -44,6 +44,23 @@ export async function loginAction(values: unknown): Promise<ActionResult> {
   if (error) {
     logger.warn({ error }, 'Login failed')
     return { success: false, error: error.message }
+  }
+
+  if (data.user) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_active')
+      .eq('id', data.user.id)
+      .single()
+
+    if (profileError) {
+      logger.warn({ profileError }, 'Profile check failed')
+    }
+
+    if (profile && profile.is_active === false) {
+      await supabase.auth.signOut()
+      return { success: false, error: 'Your account is deactivated. Contact your admin.' }
+    }
   }
 
   return { success: true }
@@ -60,14 +77,17 @@ export async function registerAction(values: unknown): Promise<ActionResult> {
   }
 
   const supabase = await createSupabaseServerClient()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const options = {
+    ...(appUrl ? { emailRedirectTo: `${appUrl}/login?confirmed=1` } : {}),
+    data: {
+      full_name: parsed.data.fullName
+    }
+  }
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      data: {
-        full_name: parsed.data.fullName
-      }
-    }
+    options
   })
 
   if (error) {

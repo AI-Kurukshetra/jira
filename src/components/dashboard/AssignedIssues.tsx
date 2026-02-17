@@ -7,9 +7,11 @@ import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { IssueRow } from '@/components/backlog/IssueRow'
 import { useIssues } from '@/lib/hooks/useIssues'
 import { useMe } from '@/lib/hooks/useMe'
+import { useCreateIssue } from '@/components/issues/CreateIssueProvider'
 
 export function AssignedIssues() {
   const { data: me } = useMe()
+  const { openCreateIssue } = useCreateIssue()
   const { data, isLoading, isError } = useIssues(
     me?.user.id ? { assigneeId: me.user.id } : undefined
   )
@@ -28,6 +30,7 @@ export function AssignedIssues() {
         title="No assignments yet"
         description="You are all caught up. Create a new issue or join a sprint to get started."
         actionLabel="Create issue"
+        onAction={() => openCreateIssue()}
       />
     )
   }

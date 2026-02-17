@@ -37,7 +37,7 @@ export default function RegisterPage() {
         setServerError(result.error ?? 'Registration failed')
         return
       }
-      router.push('/login')
+      router.push('/login?registered=1')
     })
   }
 

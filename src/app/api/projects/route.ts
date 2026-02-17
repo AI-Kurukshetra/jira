@@ -3,6 +3,9 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { projectSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapProjectRow } from '@/lib/api/mappers'
+
+const TRASH_RETENTION_DAYS = 30
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -14,7 +17,14 @@ export async function GET(request: Request) {
   if (error || !user) return fail('Unauthorized', 401)
 
   let query = supabase.from('projects').select('*').order('created_at', { ascending: false })
-  if (status) query = query.eq('status', status)
+  if (status) {
+    query = query.eq('status', status)
+    if (status === 'deleted') {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - TRASH_RETENTION_DAYS)
+      query = query.gte('deleted_at', cutoff.toISOString())
+    }
+  }
   if (key) query = query.eq('key', key)
   const { data, error: fetchError } = await query
 
@@ -23,7 +33,8 @@ export async function GET(request: Request) {
     return fail('Failed to fetch projects', 500)
   }
 
-  return ok(data ?? [])
+  const mapped = (data ?? []).map((project) => mapProjectRow(project))
+  return ok(mapped)
 }
 
 export async function POST(request: Request) {
@@ -68,5 +79,5 @@ export async function POST(request: Request) {
     logger.error({ memberError }, 'Failed to attach project member')
   }
 
-  return ok(project, 201)
+  return ok(mapProjectRow(project), 201)
 }

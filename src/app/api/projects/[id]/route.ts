@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'
 import { projectSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
+import { mapProjectRow } from '@/lib/api/mappers'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -21,7 +22,7 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch project', 500)
   }
 
-  return ok(data)
+  return ok(mapProjectRow(data))
 }
 
 export async function PATCH(request: Request, { params }: Params) {
@@ -55,7 +56,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return fail('Failed to update project', 500)
   }
 
-  return ok(data)
+  return ok(mapProjectRow(data))
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
@@ -63,6 +64,21 @@ export async function DELETE(_request: Request, { params }: Params) {
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    logger.error({ profileError }, 'Failed to verify user role')
+    return fail('Failed to verify permissions', 500)
+  }
+
+  if (profile?.role !== 'system_admin') {
+    return fail('Forbidden', 403)
+  }
 
   const { error: deleteError } = await supabase
     .from('projects')
