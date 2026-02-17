@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, Card, CardContent, MenuItem, TextField, Typography } from '@mui/material'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 
 import { SectionHeader } from '@/components/ui/SectionHeader'
@@ -30,7 +30,7 @@ export default function NewProjectPage() {
   const queryClient = useQueryClient()
   const [keyEdited, setKeyEdited] = useState(false)
 
-  const { register, handleSubmit, setValue, watch, formState } = useForm<ProjectValues>({
+  const { register, handleSubmit, setValue, control, formState } = useForm<ProjectValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       name: '',
@@ -40,7 +40,7 @@ export default function NewProjectPage() {
     }
   })
 
-  const name = watch('name')
+  const name = useWatch({ control, name: 'name' })
   const autoKey = useMemo(() => buildProjectKey(name ?? ''), [name])
 
   useEffect(() => {

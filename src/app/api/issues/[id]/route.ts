@@ -12,6 +12,14 @@ interface Params {
   params: Promise<{ id: string }>
 }
 
+const isPastDate = (value: string) => {
+  const target = new Date(value)
+  const today = new Date()
+  target.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+  return target.getTime() < today.getTime()
+}
+
 export async function GET(_request: Request, { params }: Params) {
   const { id } = await params
   const supabase = await createClient()
@@ -37,6 +45,14 @@ export async function PATCH(request: Request, { params }: Params) {
   const payload = await request.json()
   const parsed = issueSchema.partial().safeParse(payload)
   if (!parsed.success) return fail(parsed.error.message, 400)
+
+  if (parsed.data.issueType === 'subtask' && !parsed.data.parentIssueId) {
+    return fail('Subtasks must include a parent issue.', 400)
+  }
+
+  if (parsed.data.dueDate && isPastDate(parsed.data.dueDate)) {
+    return fail('Due date cannot be in the past.', 400)
+  }
 
   const { data: current, error: fetchError } = await supabase
     .from('issues')
@@ -70,20 +86,24 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const resolvedAt = nextStatus === 'done' && current.status !== 'done' ? new Date().toISOString() : current.resolved_at
 
+  const nextIssueType = parsed.data.issueType ?? current.issue_type
+  const nextStoryPoints =
+    nextIssueType === 'bug' ? null : parsed.data.storyPoints ?? current.story_points
+
   const { data: updated, error: updateError } = await supabase
     .from('issues')
     .update({
       sprint_id: parsed.data.sprintId ?? current.sprint_id,
       parent_issue_id: parsed.data.parentIssueId ?? current.parent_issue_id,
       column_id: nextColumnId,
-      issue_type: parsed.data.issueType ?? current.issue_type,
+      issue_type: nextIssueType,
       summary: parsed.data.summary ?? current.summary,
       description: parsed.data.description ?? current.description,
       status: nextStatus,
       priority: parsed.data.priority ?? current.priority,
       assignee_id: parsed.data.assigneeId ?? current.assignee_id,
       reporter_id: parsed.data.reporterId ?? current.reporter_id,
-      story_points: parsed.data.storyPoints ?? current.story_points,
+      story_points: nextStoryPoints,
       due_date: parsed.data.dueDate ?? current.due_date,
       resolved_at: resolvedAt
     })

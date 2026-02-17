@@ -9,6 +9,10 @@ import { useLabels } from '@/lib/hooks/useLabels'
 import { useMe } from '@/lib/hooks/useMe'
 import type { IssueFilters } from '@/lib/types/filters'
 import type { IssuePriority, IssueStatus, IssueType } from '@/lib/types'
+import { useSprints } from '@/lib/hooks/useSprints'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import { format } from 'date-fns'
 
 interface SavedFilter {
   id: string
@@ -31,6 +35,7 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
   const { filters, setFilters, resetFilters } = useIssueFilters(projectId)
   const { data: members } = useProjectMembers(projectId)
   const { data: labels } = useLabels(projectId)
+  const { data: sprints } = useSprints(projectId)
   const { data: me } = useMe()
 
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([])
@@ -80,10 +85,13 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
     let count = 0
     if (filters.query) count += 1
     if (filters.assigneeIds.length > 0) count += 1
+    if (filters.reporterIds.length > 0) count += 1
     if (filters.issueTypes.length > 0) count += 1
     if (filters.priorities.length > 0) count += 1
     if (filters.statuses.length > 0) count += 1
     if (filters.labels.length > 0) count += 1
+    if (filters.sprintFilter !== 'all') count += 1
+    if (filters.dueDateFrom || filters.dueDateTo) count += 1
     if (filters.myOnly) count += 1
     return count
   }, [filters])
@@ -108,6 +116,21 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           sx={{ minWidth: 200 }}
         >
           <MenuItem value="unassigned">Unassigned</MenuItem>
+          {members?.map((member) => (
+            <MenuItem key={member.userId} value={member.userId}>
+              {member.profile?.displayName ?? member.profile?.fullName ?? member.userId}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          size="small"
+          label="Reporter"
+          SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
+          value={filters.reporterIds}
+          onChange={(e) => setFilters({ reporterIds: toArray(e.target.value) as string[] })}
+          sx={{ minWidth: 200 }}
+        >
           {members?.map((member) => (
             <MenuItem key={member.userId} value={member.userId}>
               {member.profile?.displayName ?? member.profile?.fullName ?? member.userId}
@@ -179,6 +202,60 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
             </MenuItem>
           ))}
         </TextField>
+        <TextField
+          select
+          size="small"
+          label="Sprint"
+          value={filters.sprintFilter}
+          onChange={(e) => setFilters({ sprintFilter: e.target.value as IssueFilters['sprintFilter'] })}
+          sx={{ minWidth: 170 }}
+        >
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="active">Active</MenuItem>
+          <MenuItem value="backlog">Backlog</MenuItem>
+          <MenuItem value="specific">Specific</MenuItem>
+        </TextField>
+        {filters.sprintFilter === 'specific' && (
+          <TextField
+            select
+            size="small"
+            label="Sprint name"
+            value={filters.sprintId ?? ''}
+            onChange={(e) => setFilters({ sprintId: e.target.value || undefined })}
+            sx={{ minWidth: 200 }}
+          >
+            {(sprints?.length ?? 0) === 0 && (
+              <MenuItem value="" disabled>
+                No sprints
+              </MenuItem>
+            )}
+            {sprints?.map((sprint) => (
+              <MenuItem key={sprint.id} value={sprint.id}>
+                {sprint.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
+            label="Due from"
+            value={filters.dueDateFrom ? new Date(filters.dueDateFrom) : null}
+            onChange={(value) =>
+              setFilters({ dueDateFrom: value ? format(value, 'yyyy-MM-dd') : undefined })
+            }
+            slotProps={{ textField: { size: 'small' } }}
+          />
+        </LocalizationProvider>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DatePicker
+            label="Due to"
+            value={filters.dueDateTo ? new Date(filters.dueDateTo) : null}
+            onChange={(value) =>
+              setFilters({ dueDateTo: value ? format(value, 'yyyy-MM-dd') : undefined })
+            }
+            slotProps={{ textField: { size: 'small' } }}
+          />
+        </LocalizationProvider>
         <Button
           variant={filters.myOnly ? 'contained' : 'outlined'}
           size="small"

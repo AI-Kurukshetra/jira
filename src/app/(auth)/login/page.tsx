@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Suspense, useMemo, useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, FormControlLabel, Switch, TextField, Typography } from '@mui/material'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -16,9 +16,9 @@ import type { z } from 'zod'
 type LoginValues = z.infer<typeof loginSchema>
 
 function LoginForm() {
-  const { register, handleSubmit, formState } = useForm<LoginValues>({
+  const { register, handleSubmit, formState, control } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' }
+    defaultValues: { email: '', password: '', rememberMe: false }
   })
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -71,7 +71,16 @@ function LoginForm() {
           <TextField label="Password" type="password" placeholder="••••••••" {...register('password')} />
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <FormControlLabel control={<Switch size="small" />} label="Remember me" />
+            <Controller
+              name="rememberMe"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={<Switch size="small" checked={Boolean(field.value)} onChange={(_, value) => field.onChange(value)} />}
+                  label="Remember me"
+                />
+              )}
+            />
             <Typography component={Link} href="/forgot-password" sx={{ color: 'primary.main', fontSize: '0.8125rem' }}>
               Forgot password?
             </Typography>

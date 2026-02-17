@@ -48,12 +48,11 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
   const [createEndDate, setCreateEndDate] = useState<Date | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
 
+  const activeSprint = sprints?.find((sprint) => sprint.status === 'active') ?? null
   const filteredIssues = useMemo(() => {
     if (!issues) return []
-    return applyIssueFilters(issues, filters, me?.user.id)
-  }, [issues, filters, me?.user.id])
-
-  const activeSprint = sprints?.find((sprint) => sprint.status === 'active') ?? null
+    return applyIssueFilters(issues, filters, me?.user.id, activeSprint?.id)
+  }, [issues, filters, me?.user.id, activeSprint?.id])
   const futureSprints = (sprints ?? []).filter((sprint) => sprint.status === 'pending')
 
   if (sprintsLoading || issuesLoading) {

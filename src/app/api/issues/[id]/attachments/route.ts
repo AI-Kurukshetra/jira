@@ -7,7 +7,7 @@ import { attachmentSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { ATTACHMENTS_BUCKET } from '@/config/constants'
+import { ATTACHMENTS_BUCKET, MAX_ATTACHMENTS_PER_ISSUE } from '@/config/constants'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -46,6 +46,20 @@ export async function POST(request: Request, { params }: Params) {
   const payload = await request.json()
   const parsed = attachmentSchema.safeParse({ ...payload, issueId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
+
+  const { count, error: countError } = await supabase
+    .from('attachments')
+    .select('*', { count: 'exact', head: true })
+    .eq('issue_id', id)
+
+  if (countError) {
+    logger.error({ countError }, 'Failed to count attachments')
+    return fail('Failed to add attachment', 500)
+  }
+
+  if ((count ?? 0) >= MAX_ATTACHMENTS_PER_ISSUE) {
+    return fail(`You can upload up to ${MAX_ATTACHMENTS_PER_ISSUE} attachments per issue.`, 400)
+  }
 
   const { data, error: insertError } = await supabase
     .from('attachments')

@@ -15,10 +15,15 @@ interface IssueFilterState {
 const DEFAULT_FILTERS: IssueFilters = {
   query: '',
   assigneeIds: [],
+  reporterIds: [],
   issueTypes: [],
   priorities: [],
   statuses: [],
   labels: [],
+  sprintFilter: 'all',
+  sprintId: undefined,
+  dueDateFrom: undefined,
+  dueDateTo: undefined,
   myOnly: false
 }
 
@@ -32,10 +37,15 @@ export const useIssueFilterStore = create<IssueFilterState>()(
           ...current,
           ...update,
           assigneeIds: update.assigneeIds ?? current.assigneeIds,
+          reporterIds: update.reporterIds ?? current.reporterIds,
           issueTypes: update.issueTypes ?? current.issueTypes,
           priorities: update.priorities ?? current.priorities,
           statuses: update.statuses ?? current.statuses,
-          labels: update.labels ?? current.labels
+          labels: update.labels ?? current.labels,
+          sprintFilter: update.sprintFilter ?? current.sprintFilter,
+          sprintId: update.sprintId ?? current.sprintId,
+          dueDateFrom: update.dueDateFrom ?? current.dueDateFrom,
+          dueDateTo: update.dueDateTo ?? current.dueDateTo
         }
         set((state) => ({
           filtersByProject: { ...state.filtersByProject, [projectId]: next }

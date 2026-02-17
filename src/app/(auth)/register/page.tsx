@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useMemo, useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Box, Button, TextField, Typography } from '@mui/material'
 import { useRouter } from 'next/navigation'
@@ -16,7 +16,7 @@ import type { z } from 'zod'
 type RegisterValues = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  const { register, handleSubmit, formState, watch } = useForm<RegisterValues>({
+  const { register, handleSubmit, formState, control } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
   })
@@ -41,8 +41,8 @@ export default function RegisterPage() {
     })
   }
 
-  const password = watch('password')
-  const confirmPassword = watch('confirmPassword')
+  const password = useWatch({ control, name: 'password' })
+  const confirmPassword = useWatch({ control, name: 'confirmPassword' })
   const passwordsMatch = password && confirmPassword && password === confirmPassword
 
   return (

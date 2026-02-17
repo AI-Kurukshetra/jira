@@ -8,6 +8,14 @@ import { createNotification } from '@/lib/services/notifications'
 import { mapIssueRow, mapIssueRowWithoutAssignee } from '@/lib/api/mappers'
 import type { ProfileLite } from '@/lib/types/profile'
 
+const isPastDate = (value: string) => {
+  const target = new Date(value)
+  const today = new Date()
+  target.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+  return target.getTime() < today.getTime()
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const projectId = searchParams.get('projectId')
@@ -109,6 +117,14 @@ export async function POST(request: Request) {
   const parsed = issueSchema.safeParse(payload)
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? parsed.error.message, 400)
 
+  if (parsed.data.issueType === 'subtask' && !parsed.data.parentIssueId) {
+    return fail('Subtasks must include a parent issue.', 400)
+  }
+
+  if (parsed.data.dueDate && isPastDate(parsed.data.dueDate)) {
+    return fail('Due date cannot be in the past.', 400)
+  }
+
   const { data: columns, error: columnsError } = await supabase
     .from('board_columns')
     .select('id, status, position')
@@ -133,6 +149,8 @@ export async function POST(request: Request) {
   const selectedColumn = requestedColumn ?? fallbackColumn!
   const selectedStatus = selectedColumn.status
 
+  const storyPoints = parsed.data.issueType === 'bug' ? null : parsed.data.storyPoints ?? null
+
   const { data: issue, error: insertError } = await supabase
     .from('issues')
     .insert({
@@ -147,7 +165,7 @@ export async function POST(request: Request) {
       priority: parsed.data.priority ?? 'medium',
       assignee_id: parsed.data.assigneeId ?? null,
       reporter_id: parsed.data.reporterId ?? user.id,
-      story_points: parsed.data.storyPoints ?? null,
+      story_points: storyPoints,
       due_date: parsed.data.dueDate ?? null
     })
     .select('*')

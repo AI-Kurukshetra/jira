@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { createClient } from '@/lib/supabase/client'
 import { apiDelete, apiGet, apiPost } from '@/lib/api/client'
-import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, ATTACHMENTS_BUCKET } from '@/config/constants'
+import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, ATTACHMENTS_BUCKET, MAX_ATTACHMENTS_PER_ISSUE } from '@/config/constants'
 
 interface IssueAttachmentsProps {
   issueId: string
@@ -66,6 +66,11 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
     if (!file) return
 
     setError(null)
+    if (items.length >= MAX_ATTACHMENTS_PER_ISSUE) {
+      setError(`You can upload up to ${MAX_ATTACHMENTS_PER_ISSUE} attachments per issue.`)
+      return
+    }
+
     if (file.size > MAX_ATTACHMENT_BYTES) {
       setError(`File exceeds ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB limit.`)
       return
@@ -119,8 +124,14 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
           Attachments
         </Typography>
-        <Button component="label" size="small" variant="outlined" startIcon={<AttachFileIcon />}> 
-          Upload
+        <Button
+          component="label"
+          size="small"
+          variant="outlined"
+          startIcon={<AttachFileIcon />}
+          disabled={items.length >= MAX_ATTACHMENTS_PER_ISSUE || uploading}
+        >
+          {items.length >= MAX_ATTACHMENTS_PER_ISSUE ? 'Limit reached' : 'Upload'}
           <input type="file" hidden onChange={onFileChange} />
         </Button>
       </Box>
