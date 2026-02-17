@@ -3,6 +3,8 @@
 import { Box, Card, CardContent, Divider, LinearProgress, Typography } from '@mui/material'
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
+import { BarChart, LineChart } from '@mui/x-charts'
+import { eachDayOfInterval, format, startOfDay } from 'date-fns'
 
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
@@ -29,6 +31,52 @@ export default function ProjectDashboardPage() {
     const done = (issues ?? []).filter((issue) => issue.status === 'done').length
     return { total, open, inProgress, done }
   }, [issues])
+
+  const velocity = useMemo(() => {
+    const completed = (sprints ?? []).filter((sprint) => sprint.status === 'completed')
+    return completed.map((sprint) => {
+      const sprintIssues = (issues ?? []).filter((issue) => issue.sprintId === sprint.id)
+      const points = sprintIssues.reduce((acc, issue) => acc + (issue.storyPoints ?? 0), 0)
+      return { label: sprint.name, points }
+    })
+  }, [issues, sprints])
+
+  const burndown = useMemo(() => {
+    if (!activeSprint?.startDate || !activeSprint?.endDate) return null
+    const sprintIssues = (issues ?? []).filter((issue) => issue.sprintId === activeSprint.id)
+    const totalPoints = sprintIssues.reduce((acc, issue) => acc + (issue.storyPoints ?? 0), 0)
+    const start = startOfDay(new Date(activeSprint.startDate))
+    const end = startOfDay(new Date(activeSprint.endDate))
+    const days = eachDayOfInterval({ start, end })
+
+    const doneByDate = new Map<string, number>()
+    sprintIssues.forEach((issue) => {
+      if (!issue.resolvedAt) return
+      const resolved = startOfDay(new Date(issue.resolvedAt))
+      const key = format(resolved, 'yyyy-MM-dd')
+      doneByDate.set(key, (doneByDate.get(key) ?? 0) + (issue.storyPoints ?? 0))
+    })
+
+    let cumulativeDone = 0
+    const remainingSeries = days.map((day) => {
+      const key = format(day, 'yyyy-MM-dd')
+      cumulativeDone += doneByDate.get(key) ?? 0
+      return Math.max(totalPoints - cumulativeDone, 0)
+    })
+
+    const idealSeries = days.map((_, index) => {
+      if (days.length <= 1) return totalPoints
+      const slope = totalPoints / (days.length - 1)
+      return Math.max(totalPoints - slope * index, 0)
+    })
+
+    return {
+      labels: days.map((day) => format(day, 'MMM d')),
+      remainingSeries,
+      idealSeries,
+      totalPoints
+    }
+  }, [activeSprint?.startDate, activeSprint?.endDate, activeSprint?.id, issues])
 
   const sprintDone = activeSprintIssues.filter((issue) => issue.status === 'done').length
   const sprintProgress = activeSprintIssues.length > 0 ? (sprintDone / activeSprintIssues.length) * 100 : 0
@@ -79,6 +127,43 @@ export default function ProjectDashboardPage() {
               </Card>
             ))}
           </Box>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent sx={{ display: 'grid', gap: 2 }}>
+          <Typography variant="h3">Velocity</Typography>
+          <Divider />
+          {velocity.length === 0 ? (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Complete a sprint to see velocity.
+            </Typography>
+          ) : (
+            <BarChart
+              xAxis={[{ data: velocity.map((item) => item.label), scaleType: 'band' }]}
+              series={[{ data: velocity.map((item) => item.points), label: 'Story points' }]}
+              height={240}
+            />
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent sx={{ display: 'grid', gap: 2 }}>
+          <Typography variant="h3">Burndown</Typography>
+          <Divider />
+          {!burndown ? (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Start an active sprint with dates to see burndown.
+            </Typography>
+          ) : (
+            <LineChart
+              xAxis={[{ data: burndown.labels, scaleType: 'point' }]}
+              series={[
+                { data: burndown.remainingSeries, label: 'Remaining' },
+                { data: burndown.idealSeries, label: 'Ideal' }
+              ]}
+              height={240}
+            />
+          )}
         </CardContent>
       </Card>
     </Box>

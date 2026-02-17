@@ -153,6 +153,17 @@ export interface Attachment {
   createdAt: string
 }
 
+export interface TimeEntry {
+  id: Id
+  issueId: Id
+  userId: Id
+  workDate: string
+  minutes: number
+  description?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Notification {
   id: Id
   recipientId: Id
