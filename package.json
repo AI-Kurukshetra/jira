@@ -1,0 +1,52 @@
+{
+  "name": "projecthub",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "@supabase/supabase-js": "latest",
+    "@supabase/ssr": "latest",
+    "@tanstack/react-query": "latest",
+    "zustand": "latest",
+    "react-hook-form": "latest",
+    "@hookform/resolvers": "latest",
+    "zod": "latest",
+    "@mui/material": "latest",
+    "@mui/icons-material": "latest",
+    "@mui/lab": "latest",
+    "@mui/x-date-pickers": "latest",
+    "@mui/x-data-grid": "latest",
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@emotion/server": "latest",
+    "framer-motion": "latest",
+    "@tiptap/react": "latest",
+    "@tiptap/starter-kit": "latest",
+    "@tiptap/extension-mention": "latest",
+    "@tiptap/extension-placeholder": "latest",
+    "@tiptap/extension-link": "latest",
+    "@dnd-kit/core": "latest",
+    "@dnd-kit/sortable": "latest",
+    "@dnd-kit/utilities": "latest",
+    "lucide-react": "latest",
+    "date-fns": "latest",
+    "clsx": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest"
+  }
+}
