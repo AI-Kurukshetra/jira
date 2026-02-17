@@ -46,6 +46,7 @@ export function AssignedIssues() {
           issueType={issue.issueType}
           priority={issue.priority}
           status={issue.status}
+          {...(issue.projectKey ? { href: `/projects/${issue.projectKey}/issues/${issue.issueKey}` } : {})}
           {...(issue.assignee
             ? {
                 assignee: {

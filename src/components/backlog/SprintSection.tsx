@@ -10,13 +10,14 @@ interface SprintSectionProps {
   subtitle: string
   active?: boolean
   issues: Issue[]
+  projectKey?: string
   onStart?: () => void
   onComplete?: () => void
   canStart?: boolean
   canComplete?: boolean
 }
 
-export function SprintSection({ title, subtitle, active, issues, onStart, onComplete, canStart, canComplete }: SprintSectionProps) {
+export function SprintSection({ title, subtitle, active, issues, projectKey, onStart, onComplete, canStart, canComplete }: SprintSectionProps) {
   return (
     <Box
       sx={(theme) => ({
@@ -72,6 +73,7 @@ export function SprintSection({ title, subtitle, active, issues, onStart, onComp
             issueType={issue.issueType}
             priority={issue.priority}
             status={issue.status}
+            {...(projectKey ? { href: `/projects/${projectKey}/issues/${issue.issueKey}` } : {})}
             {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
             {...(issue.storyPoints !== null && issue.storyPoints !== undefined
               ? { storyPoints: issue.storyPoints }

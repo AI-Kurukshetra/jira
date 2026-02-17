@@ -16,6 +16,7 @@ interface SortableIssueCardProps {
   labels?: string[]
   assignee?: { id: string; name: string }
   storyPoints?: number
+  href?: string
 }
 
 export function SortableIssueCard({ id, ...props }: SortableIssueCardProps) {

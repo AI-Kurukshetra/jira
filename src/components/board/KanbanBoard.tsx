@@ -18,9 +18,10 @@ interface KanbanBoardProps {
   initialIssues?: IssueWithAssignee[]
   columns: BoardColumn[]
   onAddIssue?: (columnId: string) => void
+  projectKey?: string
 }
 
-export function KanbanBoard({ initialIssues = [], columns, onAddIssue }: KanbanBoardProps) {
+export function KanbanBoard({ initialIssues = [], columns, onAddIssue, projectKey }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [issues, setIssues] = useState<IssueWithAssignee[]>(initialIssues)
   const queryClient = useQueryClient()
@@ -205,6 +206,7 @@ export function KanbanBoard({ initialIssues = [], columns, onAddIssue }: KanbanB
                     issueType={issue.issueType}
                     priority={issue.priority}
                     labels={issue.labels ?? []}
+                    {...(projectKey ? { href: `/projects/${projectKey}/issues/${issue.issueKey}` } : {})}
                     {...(issue.assignee
                       ? {
                           assignee: {

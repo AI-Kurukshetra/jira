@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Box, Typography } from '@mui/material'
 
 import { IssueKey } from '@/components/design/IssueKey'
@@ -17,6 +18,7 @@ interface IssueRowProps {
   status: IssueStatus
   assignee?: { id: string; name: string }
   storyPoints?: number
+  href?: string
 }
 
 export function IssueRow({
@@ -26,10 +28,12 @@ export function IssueRow({
   priority,
   status,
   assignee,
-  storyPoints
+  storyPoints,
+  href
 }: IssueRowProps) {
   return (
     <Box
+      {...(href ? { component: Link, href } : {})}
       sx={(theme) => ({
         height: 36,
         display: 'grid',
@@ -37,6 +41,9 @@ export function IssueRow({
         alignItems: 'center',
         px: 1,
         borderRadius: 1,
+        cursor: href ? 'pointer' : 'default',
+        textDecoration: 'none',
+        color: 'inherit',
         '&:hover': { backgroundColor: theme.palette.background.default }
       })}
     >

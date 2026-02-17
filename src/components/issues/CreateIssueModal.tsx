@@ -152,6 +152,14 @@ export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprin
               value={field.value ?? ''}
               onChange={(event) => field.onChange(event.target.value || null)}
               disabled={!selectedProjectId}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (value) => {
+                  if (!value) return 'Backlog'
+                  const sprint = sprints?.find((entry) => entry.id === value)
+                  return sprint ? sprint.name : 'Backlog'
+                }
+              }}
               helperText={!selectedProjectId ? 'Select a project to see sprints' : undefined}
             >
               <MenuItem value="">Backlog</MenuItem>

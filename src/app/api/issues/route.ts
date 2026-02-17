@@ -5,7 +5,8 @@ import { issueSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
 import { createNotification } from '@/lib/services/notifications'
-import { mapIssueRow } from '@/lib/api/mappers'
+import { mapIssueRow, mapIssueRowWithoutAssignee } from '@/lib/api/mappers'
+import type { ProfileLite } from '@/lib/types/profile'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
 
   let queryBuilder = supabase
     .from('issues')
-    .select('*, assignee:profiles!issues_assignee_id(full_name, display_name, avatar_url), issue_labels(labels(name))')
+    .select('*, issue_labels(labels(name))')
     .order('created_at', { ascending: false })
 
   if (projectId) queryBuilder = queryBuilder.eq('project_id', projectId)
@@ -36,12 +37,67 @@ export async function GET(request: Request) {
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch issues')
-    return fail('Failed to fetch issues', 500)
+    return fail(fetchError.message ?? 'Failed to fetch issues', 500)
   }
 
-  const mapped = (data ?? []).map((issue) => mapIssueRow(issue))
+  const mapped = (data ?? []).map((issue) => mapIssueRowWithoutAssignee(issue))
 
-  return ok(mapped)
+  const assigneeIds = Array.from(
+    new Set(
+      mapped
+        .map((issue) => issue.assigneeId ?? null)
+        .filter((id): id is string => Boolean(id))
+    )
+  )
+
+  let assigneeMap = new Map<string, ProfileLite>()
+  if (assigneeIds.length > 0) {
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, display_name, avatar_url')
+      .in('id', assigneeIds)
+
+    if (profileError) {
+      logger.error({ profileError }, 'Failed to fetch assignees')
+      return fail(profileError.message ?? 'Failed to fetch issues', 500)
+    }
+
+    assigneeMap = new Map(
+      (profiles ?? []).map((profile) => [
+        profile.id,
+        {
+          id: profile.id,
+          fullName: profile.full_name,
+          ...(profile.display_name ? { displayName: profile.display_name } : {}),
+          ...(profile.avatar_url ? { avatarUrl: profile.avatar_url } : {})
+        }
+      ])
+    )
+  }
+
+  const projectIds = Array.from(new Set(mapped.map((issue) => issue.projectId)))
+  let projectKeyMap = new Map<string, string>()
+  if (projectIds.length > 0) {
+    const { data: projects, error: projectError } = await supabase
+      .from('projects')
+      .select('id, key')
+      .in('id', projectIds)
+
+    if (projectError) {
+      logger.error({ projectError }, 'Failed to fetch project keys')
+      return fail(projectError.message ?? 'Failed to fetch issues', 500)
+    }
+
+    projectKeyMap = new Map((projects ?? []).map((project) => [project.id, project.key]))
+  }
+
+  const enriched = mapped.map((issue) => ({
+    ...issue,
+    ...(issue.assigneeId ? { assignee: assigneeMap.get(issue.assigneeId) ?? null } : {}),
+    ...(projectKeyMap.get(issue.projectId) ? { projectKey: projectKeyMap.get(issue.projectId) } : {})
+  }))
+
+  return ok(enriched)
 }
 
 export async function POST(request: Request) {

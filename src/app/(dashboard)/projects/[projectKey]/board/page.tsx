@@ -75,6 +75,7 @@ export default function BoardPage({ params }: { params: Promise<{ projectKey: st
         <KanbanBoard
           initialIssues={filteredIssues}
           columns={columns}
+          projectKey={projectKey}
           onAddIssue={(columnId) => {
             if (!project?.id) return
             openCreateIssue(project.id, activeSprint?.id, columnId)

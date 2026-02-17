@@ -94,6 +94,7 @@ export interface Label {
 export interface Issue {
   id: Id
   projectId: Id
+  projectKey?: string
   sprintId?: Id | null
   parentIssueId?: Id | null
   columnId?: Id | null

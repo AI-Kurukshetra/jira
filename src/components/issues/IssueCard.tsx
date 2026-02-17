@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Box, Chip, Typography } from '@mui/material'
 
 import { IssueKey } from '@/components/design/IssueKey'
@@ -17,6 +18,7 @@ interface IssueCardProps {
   assignee?: { id: string; name: string }
   storyPoints?: number
   highlight?: 'overdue' | 'high'
+  href?: string
 }
 
 export function IssueCard({
@@ -27,10 +29,12 @@ export function IssueCard({
   labels = [],
   assignee,
   storyPoints,
-  highlight
+  highlight,
+  href
 }: IssueCardProps) {
   return (
     <Box
+      {...(href ? { component: Link, href } : {})}
       sx={(theme) => ({
         backgroundColor: theme.palette.background.paper,
         border: `1px solid ${theme.palette.divider}`,
@@ -40,6 +44,9 @@ export function IssueCard({
         gap: 1,
         transition: 'all 0.15s ease',
         borderLeft: highlight === 'overdue' ? '2px solid #EF4444' : highlight === 'high' ? '2px solid #F97316' : undefined,
+        textDecoration: 'none',
+        color: 'inherit',
+        cursor: href ? 'pointer' : 'default',
         '&:hover': {
           borderColor: theme.palette.divider,
           transform: 'translateY(-1px)'
