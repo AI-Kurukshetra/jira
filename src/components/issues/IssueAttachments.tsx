@@ -54,13 +54,15 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
       return
     }
 
-    const metaResult = await apiPost<AttachmentRow, AttachmentRow>(`/api/issues/${issueId}/attachments`, {
-      issueId,
+    const metaResult = await apiPost<AttachmentRow, Omit<AttachmentRow, 'id'>>(
+      `/api/issues/${issueId}/attachments`,
+      {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
       storagePath
-    })
+      }
+    )
 
     if (!metaResult.success) {
       setError(metaResult.error)

@@ -2,6 +2,7 @@
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import LogoutIcon from '@mui/icons-material/Logout'
+import SettingsIcon from '@mui/icons-material/Settings'
 import { Box, Menu, MenuItem, Typography } from '@mui/material'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -24,12 +25,21 @@ export function UserMenu() {
     router.push('/login')
   }
 
+  const onSettings = () => {
+    setAnchorEl(null)
+    router.push('/settings')
+  }
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={(e) => setAnchorEl(e.currentTarget)}>
       <UserAvatar userId={data?.user.id ?? 'user'} fullName={profileName} size="xs" />
       <Typography variant="caption" sx={{ color: 'text.secondary' }}>{profileName}</Typography>
       <KeyboardArrowDownIcon fontSize="small" />
       <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
+        <MenuItem onClick={onSettings}>
+          <SettingsIcon fontSize="small" style={{ marginRight: 8 }} />
+          Settings
+        </MenuItem>
         <MenuItem onClick={onLogout}>
           <LogoutIcon fontSize="small" style={{ marginRight: 8 }} />
           Logout

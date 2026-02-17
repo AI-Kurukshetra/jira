@@ -5,6 +5,7 @@ import BoltIcon from '@mui/icons-material/Bolt'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import HomeIcon from '@mui/icons-material/Home'
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline'
+import SettingsIcon from '@mui/icons-material/Settings'
 import { Box, Divider, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Typography } from '@mui/material'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -19,7 +20,8 @@ interface SidebarProps {
 const NAV_ITEMS = [
   { label: 'Home', href: '/', icon: HomeIcon },
   { label: 'My Work', href: '/my-work', icon: PersonOutlineIcon },
-  { label: 'Projects', href: '/projects', icon: FolderOpenIcon }
+  { label: 'Projects', href: '/projects', icon: FolderOpenIcon },
+  { label: 'Settings', href: '/settings', icon: SettingsIcon }
 ]
 
 const MotionBox = motion(Box)
