@@ -1,5 +1,3 @@
-import { z } from 'zod'
-
 import { createClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/api/auth'
 import { ok, fail } from '@/lib/api/response'

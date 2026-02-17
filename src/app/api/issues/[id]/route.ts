@@ -8,15 +8,16 @@ import { createNotification } from '@/lib/services/notifications'
 import { isValidTransition } from '@/lib/utils'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const { data, error: fetchError } = await supabase.from('issues').select('*').eq('id', params.id).single()
+  const { data, error: fetchError } = await supabase.from('issues').select('*').eq('id', id).single()
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch issue')
@@ -27,6 +28,7 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -38,7 +40,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const { data: current, error: fetchError } = await supabase
     .from('issues')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (fetchError || !current) {
@@ -69,7 +71,7 @@ export async function PATCH(request: Request, { params }: Params) {
       due_date: parsed.data.dueDate ?? current.due_date,
       resolved_at: resolvedAt
     })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('*')
     .single()
 
@@ -142,6 +144,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -149,12 +152,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   const { error: deleteError } = await supabase
     .from('issues')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (deleteError) {
     logger.error({ deleteError }, 'Failed to delete issue')
     return fail('Failed to delete issue', 500)
   }
 
-  return ok({ id: params.id })
+  return ok({ id })
 }

@@ -5,10 +5,11 @@ import { projectMemberSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -16,7 +17,7 @@ export async function GET(_request: Request, { params }: Params) {
   const { data, error: fetchError } = await supabase
     .from('project_members')
     .select('*')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch project members')
@@ -27,18 +28,19 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function POST(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = projectMemberSchema.safeParse({ ...payload, projectId: params.id })
+  const parsed = projectMemberSchema.safeParse({ ...payload, projectId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
 
   const { data, error: insertError } = await supabase
     .from('project_members')
     .insert({
-      project_id: params.id,
+      project_id: id,
       user_id: parsed.data.userId,
       role: parsed.data.role
     })
@@ -54,12 +56,13 @@ export async function POST(request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = projectMemberSchema.partial().safeParse({ ...payload, projectId: params.id })
+  const parsed = projectMemberSchema.partial().safeParse({ ...payload, projectId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
 
   if (!parsed.data.userId) return fail('Missing userId', 400)
@@ -67,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const { data, error: updateError } = await supabase
     .from('project_members')
     .update({ role: parsed.data.role })
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .eq('user_id', parsed.data.userId)
     .select('*')
     .single()
@@ -81,12 +84,13 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = projectMemberSchema.partial().safeParse({ ...payload, projectId: params.id })
+  const parsed = projectMemberSchema.partial().safeParse({ ...payload, projectId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
 
   if (!parsed.data.userId) return fail('Missing userId', 400)
@@ -94,7 +98,7 @@ export async function DELETE(request: Request, { params }: Params) {
   const { error: deleteError } = await supabase
     .from('project_members')
     .delete()
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .eq('user_id', parsed.data.userId)
 
   if (deleteError) {

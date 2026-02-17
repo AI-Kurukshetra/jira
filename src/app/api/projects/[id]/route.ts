@@ -5,15 +5,16 @@ import { projectSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const { data, error: fetchError } = await supabase.from('projects').select('*').eq('id', params.id).single()
+  const { data, error: fetchError } = await supabase.from('projects').select('*').eq('id', id).single()
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch project')
@@ -24,6 +25,7 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -44,7 +46,7 @@ export async function PATCH(request: Request, { params }: Params) {
       start_date: parsed.data.startDate,
       end_date: parsed.data.endDate
     })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('*')
     .single()
 
@@ -57,6 +59,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -64,12 +67,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   const { error: deleteError } = await supabase
     .from('projects')
     .update({ status: 'deleted', deleted_at: new Date().toISOString() })
-    .eq('id', params.id)
+    .eq('id', id)
 
   if (deleteError) {
     logger.error({ deleteError }, 'Failed to delete project')
     return fail('Failed to delete project', 500)
   }
 
-  return ok({ id: params.id })
+  return ok({ id })
 }

@@ -39,7 +39,8 @@
     "@dnd-kit/utilities": "latest",
     "lucide-react": "latest",
     "date-fns": "latest",
-    "clsx": "latest"
+    "clsx": "latest",
+    "pino": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

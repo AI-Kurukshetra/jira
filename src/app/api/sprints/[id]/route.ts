@@ -5,15 +5,16 @@ import { sprintSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const { data, error: fetchError } = await supabase.from('sprints').select('*').eq('id', params.id).single()
+  const { data, error: fetchError } = await supabase.from('sprints').select('*').eq('id', id).single()
 
   if (fetchError) {
     logger.error({ fetchError }, 'Failed to fetch sprint')
@@ -24,6 +25,7 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -42,7 +44,7 @@ export async function PATCH(request: Request, { params }: Params) {
       end_date: parsed.data.endDate,
       completed_at: parsed.data.status === 'completed' ? new Date().toISOString() : undefined
     })
-    .eq('id', params.id)
+    .eq('id', id)
     .select('*')
     .single()
 
@@ -55,16 +57,17 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  const { error: deleteError } = await supabase.from('sprints').delete().eq('id', params.id)
+  const { error: deleteError } = await supabase.from('sprints').delete().eq('id', id)
 
   if (deleteError) {
     logger.error({ deleteError }, 'Failed to delete sprint')
     return fail('Failed to delete sprint', 500)
   }
 
-  return ok({ id: params.id })
+  return ok({ id })
 }

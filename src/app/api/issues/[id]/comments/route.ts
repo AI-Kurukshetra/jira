@@ -9,7 +9,7 @@ import { logActivity } from '@/lib/services/activity'
 import { createNotification } from '@/lib/services/notifications'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 const commentUpdateSchema = z.object({
@@ -22,18 +22,19 @@ const commentDeleteSchema = z.object({
 })
 
 export async function POST(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = commentSchema.safeParse({ ...payload, issueId: params.id })
+  const parsed = commentSchema.safeParse({ ...payload, issueId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
 
   const { data, error: insertError } = await supabase
     .from('comments')
     .insert({
-      issue_id: params.id,
+      issue_id: id,
       author_id: user.id,
       body: parsed.data.body
     })
@@ -46,12 +47,16 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   await logActivity(supabase, {
-    issueId: params.id,
+    issueId: id,
     userId: user.id,
     actionType: 'comment_added'
   })
 
-  const { data: issue } = await supabase.from('issues').select('reporter_id, assignee_id, issue_key, project_id, summary').eq('id', params.id).single()
+  const { data: issue } = await supabase
+    .from('issues')
+    .select('reporter_id, assignee_id, issue_key, project_id, summary')
+    .eq('id', id)
+    .single()
 
   const recipients = [issue?.reporter_id, issue?.assignee_id].filter(
     (value): value is string => Boolean(value) && value !== user.id
@@ -64,7 +69,7 @@ export async function POST(request: Request, { params }: Params) {
         type: 'comment_added',
         title: `New comment on ${issue?.issue_key ?? 'issue'}`,
         message: issue?.summary ?? 'Comment added',
-        relatedIssueId: params.id,
+        relatedIssueId: id,
         relatedProjectId: issue?.project_id ?? null
       })
     )
@@ -74,6 +79,7 @@ export async function POST(request: Request, { params }: Params) {
 }
 
 export async function PATCH(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -86,7 +92,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .from('comments')
     .update({ body: parsed.data.body })
     .eq('id', parsed.data.commentId)
-    .eq('issue_id', params.id)
+    .eq('issue_id', id)
     .select('*')
     .single()
 
@@ -96,7 +102,7 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   await logActivity(supabase, {
-    issueId: params.id,
+    issueId: id,
     userId: user.id,
     actionType: 'comment_updated'
   })
@@ -105,6 +111,7 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -117,7 +124,7 @@ export async function DELETE(request: Request, { params }: Params) {
     .from('comments')
     .update({ is_deleted: true })
     .eq('id', parsed.data.commentId)
-    .eq('issue_id', params.id)
+    .eq('issue_id', id)
     .select('*')
     .single()
 
@@ -127,7 +134,7 @@ export async function DELETE(request: Request, { params }: Params) {
   }
 
   await logActivity(supabase, {
-    issueId: params.id,
+    issueId: id,
     userId: user.id,
     actionType: 'comment_deleted'
   })

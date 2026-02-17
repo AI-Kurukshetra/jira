@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
 
 interface Params {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 const attachmentDeleteSchema = z.object({
@@ -16,18 +16,19 @@ const attachmentDeleteSchema = z.object({
 })
 
 export async function POST(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
   const payload = await request.json()
-  const parsed = attachmentSchema.safeParse({ ...payload, issueId: params.id })
+  const parsed = attachmentSchema.safeParse({ ...payload, issueId: id })
   if (!parsed.success) return fail(parsed.error.message, 400)
 
   const { data, error: insertError } = await supabase
     .from('attachments')
     .insert({
-      issue_id: params.id,
+      issue_id: id,
       uploader_id: user.id,
       file_name: parsed.data.fileName,
       file_size: parsed.data.fileSize ?? null,
@@ -43,7 +44,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   await logActivity(supabase, {
-    issueId: params.id,
+    issueId: id,
     userId: user.id,
     actionType: 'attachment_added'
   })
@@ -52,6 +53,7 @@ export async function POST(request: Request, { params }: Params) {
 }
 
 export async function DELETE(request: Request, { params }: Params) {
+  const { id } = await params
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
@@ -64,7 +66,7 @@ export async function DELETE(request: Request, { params }: Params) {
     .from('attachments')
     .delete()
     .eq('id', parsed.data.attachmentId)
-    .eq('issue_id', params.id)
+    .eq('issue_id', id)
     .select('*')
     .single()
 
@@ -74,7 +76,7 @@ export async function DELETE(request: Request, { params }: Params) {
   }
 
   await logActivity(supabase, {
-    issueId: params.id,
+    issueId: id,
     userId: user.id,
     actionType: 'attachment_removed'
   })
