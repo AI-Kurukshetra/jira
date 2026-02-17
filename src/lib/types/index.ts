@@ -96,6 +96,7 @@ export interface Issue {
   projectId: Id
   sprintId?: Id | null
   parentIssueId?: Id | null
+  columnId?: Id | null
   issueKey: string
   issueType: IssueType
   summary: string
@@ -161,6 +162,17 @@ export interface Notification {
   relatedProjectId?: Id | null
   isRead: boolean
   createdAt: string
+}
+
+export interface BoardColumn {
+  id: Id
+  projectId: Id
+  name: string
+  status: IssueStatus
+  position: number
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface IssueWatcher {

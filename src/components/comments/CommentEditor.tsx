@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, IconButton, Stack, Tooltip } from '@mui/material'
+import { Box, Button, IconButton, Stack, Tooltip } from '@mui/material'
 import FormatBoldIcon from '@mui/icons-material/FormatBold'
 import FormatItalicIcon from '@mui/icons-material/FormatItalic'
 import CodeIcon from '@mui/icons-material/Code'
@@ -14,9 +14,17 @@ import Link from '@tiptap/extension-link'
 
 interface CommentEditorProps {
   placeholder?: string
+  onSubmit?: (body: string) => Promise<void> | void
+  submitLabel?: string
+  isSubmitting?: boolean
 }
 
-export function CommentEditor({ placeholder = 'Write a comment...' }: CommentEditorProps) {
+export function CommentEditor({
+  placeholder = 'Write a comment...',
+  onSubmit,
+  submitLabel = 'Post comment',
+  isSubmitting
+}: CommentEditorProps) {
   const extensions = useMemo(
     () => [
       StarterKit.configure({
@@ -39,6 +47,14 @@ export function CommentEditor({ placeholder = 'Write a comment...' }: CommentEdi
   })
 
   if (!editor) return null
+
+  const handleSubmit = async () => {
+    if (!onSubmit) return
+    const text = editor.getText().trim()
+    if (!text) return
+    await onSubmit(text)
+    editor.commands.clearContent()
+  }
 
   return (
     <Box
@@ -97,6 +113,18 @@ export function CommentEditor({ placeholder = 'Write a comment...' }: CommentEdi
       >
         <EditorContent editor={editor} />
       </Box>
+      {onSubmit && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 2, pb: 1.5 }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleSubmit}
+            {...(isSubmitting !== undefined ? { disabled: isSubmitting } : {})}
+          >
+            {isSubmitting ? 'Posting...' : submitLabel}
+          </Button>
+        </Box>
+      )}
     </Box>
   )
 }

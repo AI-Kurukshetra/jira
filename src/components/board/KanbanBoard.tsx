@@ -1,7 +1,7 @@
 'use client'
 
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { SortableContext, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable'
 import { Box } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -10,21 +10,17 @@ import { KanbanColumn } from '@/components/board/KanbanColumn'
 import { IssueCard } from '@/components/issues/IssueCard'
 import { SortableIssueCard } from '@/components/board/SortableIssueCard'
 import { apiPatch } from '@/lib/api/client'
-import type { IssueStatus } from '@/lib/types'
+import type { IssueStatus, BoardColumn } from '@/lib/types'
 import type { IssueWithAssignee } from '@/lib/hooks/useIssues'
 import type { Issue } from '@/lib/types'
 
 interface KanbanBoardProps {
   initialIssues?: IssueWithAssignee[]
+  columns: BoardColumn[]
+  onAddIssue?: (columnId: string) => void
 }
 
-const STATUS_COLUMNS = [
-  { key: 'todo', title: 'To Do' },
-  { key: 'inprogress', title: 'In Progress' },
-  { key: 'done', title: 'Done' }
-] as const
-
-export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
+export function KanbanBoard({ initialIssues = [], columns, onAddIssue }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [issues, setIssues] = useState<IssueWithAssignee[]>(initialIssues)
   const queryClient = useQueryClient()
@@ -36,10 +32,11 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   const updateIssue = useMutation({
-    mutationFn: async ({ id, status, boardOrder }: { id: string; status: IssueStatus; boardOrder: number }) => {
+    mutationFn: async ({ id, status, boardOrder, columnId }: { id: string; status: IssueStatus; boardOrder: number; columnId: string }) => {
       const result = await apiPatch<Issue, Partial<Issue>>(`/api/issues/${id}`, {
         status,
-        boardOrder
+        boardOrder,
+        columnId
       })
       if (!result.success) throw new Error(result.error)
       return result.data
@@ -52,7 +49,12 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
           if (!current) return current
           return current.map((issue) =>
             issue.id === payload.id
-              ? { ...issue, status: payload.status as Issue['status'], boardOrder: payload.boardOrder }
+              ? {
+                  ...issue,
+                  status: payload.status as Issue['status'],
+                  boardOrder: payload.boardOrder,
+                  columnId: payload.columnId
+                }
               : issue
           )
         })
@@ -72,13 +74,39 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
     }
   })
 
-  const grouped = useMemo(() => {
-    const map: Record<string, IssueWithAssignee[]> = { todo: [], inprogress: [], done: [] }
-    for (const issue of issues) {
-      map[issue.status]?.push(issue)
+  const columnsById = useMemo(() => new Map(columns.map((column) => [column.id, column])), [columns])
+
+  const columnsByStatus = useMemo(() => {
+    const map: Record<IssueStatus, BoardColumn[]> = {
+      todo: [],
+      inprogress: [],
+      done: []
+    }
+    for (const column of columns) {
+      map[column.status].push(column)
     }
     return map
-  }, [issues])
+  }, [columns])
+
+  const resolveColumnId = (issue: IssueWithAssignee) => {
+    if (issue.columnId && columnsById.has(issue.columnId)) return issue.columnId
+    const fallback = columnsByStatus[issue.status]?.[0]?.id ?? columns[0]?.id
+    return fallback
+  }
+
+  const grouped = useMemo(() => {
+    const map: Record<string, IssueWithAssignee[]> = {}
+    for (const column of columns) {
+      map[column.id] = []
+    }
+    for (const issue of issues) {
+      const columnId = resolveColumnId(issue)
+      if (columnId && map[columnId]) {
+        map[columnId]?.push({ ...issue, columnId })
+      }
+    }
+    return map
+  }, [issues, columns, resolveColumnId])
 
   const activeIssue = issues.find((issue) => issue.id === activeId)
 
@@ -97,24 +125,54 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
         if (activeIdValue === overIdValue) return
 
         const activeIssue = issues.find((issue) => issue.id === activeIdValue)
+        if (!activeIssue) return
+
         const overIssue = issues.find((issue) => issue.id === overIdValue)
+        const overColumn = columnsById.get(overIdValue)
 
-        if (!activeIssue || !overIssue) return
+        const targetColumnId = overColumn?.id ?? (overIssue ? resolveColumnId(overIssue) : undefined)
+        if (!targetColumnId) return
 
-        const updatedStatus = overIssue.status as IssueStatus
+        const targetColumn = columnsById.get(targetColumnId)
+        const updatedStatus = (targetColumn?.status ?? activeIssue.status) as IssueStatus
+
+        const sourceColumnId = resolveColumnId(activeIssue)
+        if (!sourceColumnId) return
 
         setIssues((current) => {
-          const fromIndex = current.findIndex((issue) => issue.id === activeIdValue)
-          const toIndex = current.findIndex((issue) => issue.id === overIdValue)
-          const moved = arrayMove(current, fromIndex, toIndex)
-          return moved.map((issue, index) =>
-            issue.id === activeIdValue ? { ...issue, status: updatedStatus, boardOrder: index } : { ...issue, boardOrder: index }
-          )
+          const sourceList = [...(grouped[sourceColumnId] ?? [])]
+          const targetList = sourceColumnId === targetColumnId ? sourceList : [...(grouped[targetColumnId] ?? [])]
+
+          const activeIndex = sourceList.findIndex((issue) => issue.id === activeIdValue)
+          if (activeIndex === -1) return current
+
+          const [movedIssue] = sourceList.splice(activeIndex, 1)
+          if (!movedIssue) return current
+          const insertionIndex =
+            overIssue && overIssue.id !== activeIdValue
+              ? targetList.findIndex((issue) => issue.id === overIssue.id)
+              : targetList.length
+
+          const insertAt = insertionIndex === -1 ? targetList.length : insertionIndex
+          targetList.splice(insertAt, 0, movedIssue)
+
+          const updatedById = new Map<string, IssueWithAssignee>()
+          sourceList.forEach((issue, index) => {
+            updatedById.set(issue.id, { ...issue, boardOrder: index, columnId: sourceColumnId })
+          })
+          targetList.forEach((issue, index) => {
+            updatedById.set(issue.id, {
+              ...issue,
+              boardOrder: index,
+              columnId: targetColumnId,
+              status: updatedStatus
+            })
+          })
+
+          return current.map((issue) => updatedById.get(issue.id) ?? issue)
         })
 
-        if (activeIssue.id) {
-          updateIssue.mutate({ id: activeIssue.id, status: updatedStatus, boardOrder: 0 })
-        }
+        updateIssue.mutate({ id: activeIssue.id, status: updatedStatus, boardOrder: 0, columnId: targetColumnId })
       }}
     >
       <Box
@@ -127,10 +185,16 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
           px: 1
         }}
       >
-        {STATUS_COLUMNS.map((column) => {
-          const columnIssues = grouped[column.key] ?? []
+        {columns.map((column) => {
+          const columnIssues = grouped[column.id] ?? []
           return (
-            <KanbanColumn key={column.key} title={column.title} count={columnIssues.length}>
+            <KanbanColumn
+              key={column.id}
+              columnId={column.id}
+              title={column.name}
+              count={columnIssues.length}
+              {...(onAddIssue ? { onAdd: () => onAddIssue(column.id) } : {})}
+            >
               <SortableContext items={columnIssues.map((issue) => issue.id)} strategy={rectSortingStrategy}>
                 {columnIssues.map((issue) => (
                   <SortableIssueCard

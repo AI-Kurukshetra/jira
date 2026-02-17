@@ -105,6 +105,7 @@ export const issueSchema = z.object({
   projectId: z.string().uuid(),
   sprintId: z.string().uuid().nullable().optional(),
   parentIssueId: z.string().uuid().nullable().optional(),
+  columnId: z.string().uuid().nullable().optional(),
   issueType: z.enum(['story', 'task', 'bug', 'subtask']),
   summary: z.string().min(1).max(SUMMARY_MAX),
   description: z.string().max(DESCRIPTION_MAX).optional(),

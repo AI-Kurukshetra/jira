@@ -19,8 +19,8 @@ export async function GET(request: Request) {
 
   const issueQuery = supabase
     .from('issues')
-    .select('id, issue_key, summary, project_id')
-    .ilike('summary', `%${parsed.data.query}%`)
+    .select('id, issue_key, summary, project_id, description, project:projects(key)')
+    .or(`summary.ilike.%${parsed.data.query}%,description.ilike.%${parsed.data.query}%`)
     .order('created_at', { ascending: false })
     .limit(10)
 

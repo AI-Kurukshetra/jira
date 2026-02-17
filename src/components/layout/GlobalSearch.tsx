@@ -1,10 +1,15 @@
 'use client'
 
 import SearchIcon from '@mui/icons-material/Search'
-import { Box, InputBase, Paper, Popper, Typography } from '@mui/material'
+import { Box, Button, InputBase, Paper, Popper, Typography } from '@mui/material'
 import { alpha } from '@mui/material/styles'
 import { motion } from 'framer-motion'
 import { useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { apiGet } from '@/lib/api/client'
+import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
+import { usePathname, useRouter } from 'next/navigation'
+import { useDebouncedValue } from '@/lib/hooks/useDebouncedValue'
 
 interface GlobalSearchProps {
   collapsed: boolean
@@ -15,9 +20,14 @@ interface SearchResult {
   label: string
   type: 'issue' | 'project'
   meta?: string
+  issueKey?: string
+  projectKey?: string
 }
 
-const placeholderResults: SearchResult[] = []
+interface SearchResponse {
+  issues: Array<{ id: string; issue_key: string; summary: string; project_id: string; project?: { key?: string | null } | null }>
+  projects: Array<{ id: string; name: string; key: string }>
+}
 
 const MotionPaper = motion(Paper)
 
@@ -25,11 +35,51 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const anchorRef = useRef<HTMLDivElement | null>(null)
+  const pathname = usePathname()
+  const router = useRouter()
 
-  const results = useMemo(() => {
-    if (query.trim().length < 2) return []
-    return placeholderResults
-  }, [query])
+  const activeProjectKeyMatch = pathname.match(/projects\/([^/]+)/)
+  const projectKey = activeProjectKeyMatch?.[1] ?? ''
+  const { data: project } = useProjectByKey(projectKey)
+  const queryProjectKey = project?.key ?? projectKey
+  const debouncedQuery = useDebouncedValue(query, 300)
+
+  const { data } = useQuery({
+    queryKey: ['search', debouncedQuery, project?.id ?? 'all'],
+    enabled: debouncedQuery.trim().length >= 2,
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      params.set('query', debouncedQuery.trim())
+      if (project?.id) {
+        params.set('projectId', project.id)
+        params.set('scope', 'project')
+      } else {
+        params.set('scope', 'all')
+      }
+      const result = await apiGet<SearchResponse>(`/api/search?${params.toString()}`)
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    }
+  })
+
+  const results = useMemo<SearchResult[]>(() => {
+    if (!data) return []
+    const issues = data.issues.map((issue) => ({
+      id: issue.id,
+      label: `${issue.issue_key} · ${issue.summary}`,
+      type: 'issue' as const,
+      meta: issue.project?.key ?? queryProjectKey ?? issue.project_id,
+      issueKey: issue.issue_key,
+      projectKey: issue.project?.key ?? queryProjectKey
+    }))
+    const projects = data.projects.map((projectRow) => ({
+      id: projectRow.id,
+      label: `${projectRow.key} · ${projectRow.name}`,
+      type: 'project' as const,
+      projectKey: projectRow.key
+    }))
+    return [...issues, ...projects]
+  }, [data, project?.key])
 
   const grouped = useMemo(() => {
     const issues = results.filter((item) => item.type === 'issue')
@@ -62,6 +112,19 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => setOpen(true)}
           onBlur={() => setOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && query.trim().length >= 2) {
+              const params = new URLSearchParams()
+              params.set('query', query.trim())
+              if (project?.id) {
+                params.set('projectId', project.id)
+                params.set('scope', 'project')
+              } else {
+                params.set('scope', 'all')
+              }
+              router.push(`/search?${params.toString()}`)
+            }
+          }}
           placeholder="Search issues..."
           sx={{ flex: 1, fontSize: '0.875rem' }}
         />
@@ -103,6 +166,25 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
 
           {hasResults && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  size="small"
+                  variant="text"
+                  onMouseDown={() => {
+                    const params = new URLSearchParams()
+                    params.set('query', query.trim())
+                    if (project?.id) {
+                      params.set('projectId', project.id)
+                      params.set('scope', 'project')
+                    } else {
+                      params.set('scope', 'all')
+                    }
+                    router.push(`/search?${params.toString()}`)
+                  }}
+                >
+                  View all results
+                </Button>
+              </Box>
               <Box>
                 <Typography variant="overline" sx={{ color: 'text.tertiary' }}>
                   Issues
@@ -110,6 +192,11 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
                 {grouped.issues.map((item) => (
                   <Box
                     key={item.id}
+                    onMouseDown={() => {
+                      if (item.projectKey && item.issueKey) {
+                        router.push(`/projects/${item.projectKey}/issues/${item.issueKey}`)
+                      }
+                    }}
                     sx={(theme) => ({
                       mt: 0.5,
                       px: 1,
@@ -137,6 +224,9 @@ export function GlobalSearch({ collapsed }: GlobalSearchProps) {
                 {grouped.projects.map((item) => (
                   <Box
                     key={item.id}
+                    onMouseDown={() => {
+                      if (item.projectKey) router.push(`/projects/${item.projectKey}`)
+                    }}
                     sx={(theme) => ({
                       mt: 0.5,
                       px: 1,

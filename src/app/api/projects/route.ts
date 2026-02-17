@@ -6,6 +6,11 @@ import { logger } from '@/lib/logger'
 import { mapProjectRow } from '@/lib/api/mappers'
 
 const TRASH_RETENTION_DAYS = 30
+const DEFAULT_BOARD_COLUMNS = [
+  { name: 'To Do', status: 'todo', position: 0 },
+  { name: 'In Progress', status: 'inprogress', position: 1 },
+  { name: 'Done', status: 'done', position: 2 }
+] as const
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -77,6 +82,20 @@ export async function POST(request: Request) {
 
   if (memberError) {
     logger.error({ memberError }, 'Failed to attach project member')
+  }
+
+  const { error: columnsError } = await supabase.from('board_columns').insert(
+    DEFAULT_BOARD_COLUMNS.map((column) => ({
+      project_id: project.id,
+      name: column.name,
+      status: column.status,
+      position: column.position,
+      is_default: true
+    }))
+  )
+
+  if (columnsError) {
+    logger.error({ columnsError }, 'Failed to initialize board columns')
   }
 
   return ok(mapProjectRow(project), 201)

@@ -5,7 +5,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { CreateIssueModal } from '@/components/issues/CreateIssueModal'
 
 interface CreateIssueContextValue {
-  openCreateIssue: (projectId?: string) => void
+  openCreateIssue: (projectId?: string, sprintId?: string, columnId?: string) => void
 }
 
 const CreateIssueContext = createContext<CreateIssueContextValue | null>(null)
@@ -25,11 +25,15 @@ interface CreateIssueProviderProps {
 export function CreateIssueProvider({ children }: CreateIssueProviderProps) {
   const [open, setOpen] = useState(false)
   const [defaultProjectId, setDefaultProjectId] = useState<string | undefined>(undefined)
+  const [defaultSprintId, setDefaultSprintId] = useState<string | undefined>(undefined)
+  const [defaultColumnId, setDefaultColumnId] = useState<string | undefined>(undefined)
 
   const value = useMemo<CreateIssueContextValue>(
     () => ({
-      openCreateIssue: (projectId?: string) => {
+      openCreateIssue: (projectId?: string, sprintId?: string, columnId?: string) => {
         setDefaultProjectId(projectId)
+        setDefaultSprintId(sprintId)
+        setDefaultColumnId(columnId)
         setOpen(true)
       }
     }),
@@ -43,6 +47,8 @@ export function CreateIssueProvider({ children }: CreateIssueProviderProps) {
         open={open}
         onClose={() => setOpen(false)}
         {...(defaultProjectId ? { defaultProjectId } : {})}
+        {...(defaultSprintId ? { defaultSprintId } : {})}
+        {...(defaultColumnId ? { defaultColumnId } : {})}
       />
     </CreateIssueContext.Provider>
   )

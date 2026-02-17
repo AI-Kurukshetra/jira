@@ -35,7 +35,12 @@ export function UserMenu() {
       <UserAvatar userId={data?.user.id ?? 'user'} fullName={profileName} size="xs" />
       <Typography variant="caption" sx={{ color: 'text.secondary' }}>{profileName}</Typography>
       <KeyboardArrowDownIcon fontSize="small" />
-      <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={() => setAnchorEl(null)}
+        MenuListProps={{ onClick: () => setAnchorEl(null) }}
+      >
         <MenuItem onClick={onSettings}>
           <SettingsIcon fontSize="small" style={{ marginRight: 8 }} />
           Settings

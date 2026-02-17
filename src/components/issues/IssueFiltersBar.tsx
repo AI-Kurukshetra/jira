@@ -24,7 +24,8 @@ const ISSUE_TYPES: IssueType[] = ['story', 'task', 'bug', 'subtask']
 const ISSUE_PRIORITIES: IssuePriority[] = ['highest', 'high', 'medium', 'low', 'lowest']
 const ISSUE_STATUSES: IssueStatus[] = ['todo', 'inprogress', 'done']
 
-const savedKey = (projectId: string) => `saved-filters:${projectId}`
+const MAX_SAVED_FILTERS = 10
+const savedKey = (projectId: string, userId?: string) => `saved-filters:${projectId}:${userId ?? 'anon'}`
 
 export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
   const { filters, setFilters, resetFilters } = useIssueFilters(projectId)
@@ -34,9 +35,14 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
 
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([])
   const [saveName, setSaveName] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const toArray = <T,>(value: T | T[]): T[] => (Array.isArray(value) ? value : [value])
+
+  const storageKey = savedKey(projectId, me?.user.id)
 
   useEffect(() => {
-    const raw = localStorage.getItem(savedKey(projectId))
+    const raw = localStorage.getItem(storageKey)
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as SavedFilter[]
@@ -45,15 +51,20 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
         setSavedFilters([])
       }
     }
-  }, [projectId])
+  }, [storageKey])
 
   const persistSaved = (next: SavedFilter[]) => {
     setSavedFilters(next)
-    localStorage.setItem(savedKey(projectId), JSON.stringify(next))
+    localStorage.setItem(storageKey, JSON.stringify(next))
   }
 
   const onSave = () => {
+    setSaveError(null)
     if (!saveName.trim()) return
+    if (savedFilters.length >= MAX_SAVED_FILTERS) {
+      setSaveError(`You can save up to ${MAX_SAVED_FILTERS} filters per project.`)
+      return
+    }
     const next: SavedFilter = { id: crypto.randomUUID(), name: saveName.trim(), filters }
     persistSaved([...savedFilters, next])
     setSaveName('')
@@ -93,7 +104,7 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           label="Assignee"
           SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
           value={filters.assigneeIds}
-          onChange={(e) => setFilters({ assigneeIds: e.target.value as unknown as string[] })}
+          onChange={(e) => setFilters({ assigneeIds: toArray(e.target.value) as string[] })}
           sx={{ minWidth: 200 }}
         >
           <MenuItem value="unassigned">Unassigned</MenuItem>
@@ -109,7 +120,7 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           label="Type"
           SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
           value={filters.issueTypes}
-          onChange={(e) => setFilters({ issueTypes: e.target.value as unknown as IssueType[] })}
+          onChange={(e) => setFilters({ issueTypes: toArray(e.target.value) as IssueType[] })}
           sx={{ minWidth: 160 }}
         >
           {ISSUE_TYPES.map((type) => (
@@ -124,7 +135,7 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           label="Priority"
           SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
           value={filters.priorities}
-          onChange={(e) => setFilters({ priorities: e.target.value as unknown as IssuePriority[] })}
+          onChange={(e) => setFilters({ priorities: toArray(e.target.value) as IssuePriority[] })}
           sx={{ minWidth: 170 }}
         >
           {ISSUE_PRIORITIES.map((priority) => (
@@ -139,7 +150,7 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           label="Status"
           SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
           value={filters.statuses}
-          onChange={(e) => setFilters({ statuses: e.target.value as unknown as IssueStatus[] })}
+          onChange={(e) => setFilters({ statuses: toArray(e.target.value) as IssueStatus[] })}
           sx={{ minWidth: 160 }}
         >
           {ISSUE_STATUSES.map((status) => (
@@ -154,9 +165,14 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
           label="Labels"
           SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).length ? (selected as string[]).length + ' selected' : 'All' }}
           value={filters.labels}
-          onChange={(e) => setFilters({ labels: e.target.value as unknown as string[] })}
+          onChange={(e) => setFilters({ labels: toArray(e.target.value) as string[] })}
           sx={{ minWidth: 160 }}
         >
+          {(labels?.length ?? 0) === 0 && (
+            <MenuItem value="" disabled>
+              No labels
+            </MenuItem>
+          )}
           {labels?.map((label) => (
             <MenuItem key={label.id} value={label.name}>
               {label.name}
@@ -209,6 +225,11 @@ export function IssueFiltersBar({ projectId }: IssueFiltersBarProps) {
         {me?.user.email && (
           <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
             Filters saved locally for {me.user.email}
+          </Typography>
+        )}
+        {saveError && (
+          <Typography variant="caption" sx={{ color: 'error.main' }}>
+            {saveError}
           </Typography>
         )}
       </Box>

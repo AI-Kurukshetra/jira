@@ -15,11 +15,12 @@ import { ActivityItem } from '@/components/comments/ActivityItem'
 import { IssueAttachments } from '@/components/issues/IssueAttachments'
 import { AssigneeSelect } from '@/components/issues/AssigneeSelect'
 import { LabelMultiSelect } from '@/components/issues/LabelMultiSelect'
-import { apiPatch } from '@/lib/api/client'
+import { apiDelete, apiPatch, apiPost } from '@/lib/api/client'
 import type { IssueStatus, IssuePriority } from '@/lib/types'
 import type { IssueWithAssignee } from '@/lib/hooks/useIssues'
 import { useComments } from '@/lib/hooks/useComments'
 import { useActivity } from '@/lib/hooks/useActivity'
+import { useMe } from '@/lib/hooks/useMe'
 
 interface IssueDetailProps {
   issue: IssueWithAssignee
@@ -42,6 +43,7 @@ export function IssueDetail({ issue }: IssueDetailProps) {
   const [labels, setLabels] = useState<string[]>([])
 
   const queryClient = useQueryClient()
+  const { data: me } = useMe()
   const { data: comments = [] } = useComments(issue.id)
   const { data: activity = [] } = useActivity(issue.id)
 
@@ -74,6 +76,42 @@ export function IssueDetail({ issue }: IssueDetailProps) {
   }, [summary, issue.summary, updateIssue])
 
   const allowedStatuses = useMemo(() => STATUS_OPTIONS[issue.status], [issue.status])
+
+  const addComment = useMutation({
+    mutationFn: async (body: string) => {
+      const result = await apiPost(`/api/issues/${issue.id}/comments`, { body })
+      if (!result.success) throw new Error(result.error)
+      return true
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['comments', issue.id] })
+      await queryClient.invalidateQueries({ queryKey: ['activity', issue.id] })
+    }
+  })
+
+  const editComment = useMutation({
+    mutationFn: async ({ id, body }: { id: string; body: string }) => {
+      const result = await apiPatch(`/api/issues/${issue.id}/comments`, { commentId: id, body })
+      if (!result.success) throw new Error(result.error)
+      return true
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['comments', issue.id] })
+      await queryClient.invalidateQueries({ queryKey: ['activity', issue.id] })
+    }
+  })
+
+  const deleteComment = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await apiDelete(`/api/issues/${issue.id}/comments`, { commentId: id })
+      if (!result.success) throw new Error(result.error)
+      return true
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['comments', issue.id] })
+      await queryClient.invalidateQueries({ queryKey: ['activity', issue.id] })
+    }
+  })
 
   return (
     <Box sx={{ display: 'grid', gap: 2 }}>
@@ -133,10 +171,23 @@ export function IssueDetail({ issue }: IssueDetailProps) {
                       name: comment.author?.displayName ?? comment.author?.fullName ?? 'User'
                     },
                     body: comment.isDeleted ? 'This comment was deleted.' : comment.body,
-                    timestamp: new Date(comment.createdAt).toLocaleString()
+                    timestamp: new Date(comment.createdAt).toLocaleString(),
+                    isDeleted: comment.isDeleted,
+                    canEdit: Boolean(me?.user.id && comment.author?.id === me.user.id)
                   }))}
+                  onEdit={async (id, body) => {
+                    await editComment.mutateAsync({ id, body })
+                  }}
+                  onDelete={async (id) => {
+                    await deleteComment.mutateAsync(id)
+                  }}
                 />
-                <CommentEditor />
+                <CommentEditor
+                  onSubmit={async (body) => {
+                    await addComment.mutateAsync(body)
+                  }}
+                  isSubmitting={addComment.isPending}
+                />
               </Box>
             )}
           </Box>

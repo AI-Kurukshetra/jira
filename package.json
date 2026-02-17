@@ -40,7 +40,8 @@
     "lucide-react": "latest",
     "date-fns": "latest",
     "clsx": "latest",
-    "pino": "latest"
+    "pino": "latest",
+    "resend": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

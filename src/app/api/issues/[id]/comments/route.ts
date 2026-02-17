@@ -86,7 +86,7 @@ export async function GET(_request: Request, { params }: Params) {
 
   const { data, error: fetchError } = await supabase
     .from('comments')
-    .select('id, body, created_at, is_deleted, author:profiles!comments_author_id_fkey(full_name, display_name, avatar_url)')
+    .select('id, body, created_at, is_deleted, author:profiles!comments_author_id_fkey(id, full_name, display_name, avatar_url)')
     .eq('issue_id', id)
     .order('created_at', { ascending: true })
 
@@ -105,21 +105,22 @@ export async function GET(_request: Request, { params }: Params) {
   const mapped = (data ?? []).map((comment) => {
     const rawAuthor = toProfile((comment as { author?: unknown }).author)
     const author = rawAuthor as
-      | { full_name?: string | null; display_name?: string | null; avatar_url?: string | null }
+      | { id?: string | null; full_name?: string | null; display_name?: string | null; avatar_url?: string | null }
       | null
 
     return {
-    id: comment.id,
-    body: comment.body,
-    createdAt: comment.created_at,
-    isDeleted: comment.is_deleted,
-    author: author
-      ? {
-          fullName: author.full_name ?? null,
-          displayName: author.display_name ?? null,
-          avatarUrl: author.avatar_url ?? null
-        }
-      : null
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.created_at,
+      isDeleted: comment.is_deleted,
+      author: author
+        ? {
+            id: author.id ?? '',
+            fullName: author.full_name ?? null,
+            displayName: author.display_name ?? null,
+            avatarUrl: author.avatar_url ?? null
+          }
+        : null
     }
   })
 

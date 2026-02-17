@@ -12,6 +12,11 @@ import { useProjects } from '@/lib/hooks/useProjects'
 import type { Issue, IssuePriority, IssueStatus, IssueType } from '@/lib/types'
 import type { z } from 'zod'
 import { AssigneeSelect } from '@/components/issues/AssigneeSelect'
+import { useSprints } from '@/lib/hooks/useSprints'
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import { format } from 'date-fns'
+import { useBoardColumns } from '@/lib/hooks/useBoardColumns'
 
 type IssueFormValues = z.infer<typeof issueSchema>
 
@@ -23,13 +28,15 @@ interface CreateIssueModalProps {
   open: boolean
   onClose: () => void
   defaultProjectId?: string
+  defaultSprintId?: string
+  defaultColumnId?: string
 }
 
-export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssueModalProps) {
+export function CreateIssueModal({ open, onClose, defaultProjectId, defaultSprintId, defaultColumnId }: CreateIssueModalProps) {
   const queryClient = useQueryClient()
   const { data: projects } = useProjects()
 
-  const { control, register, handleSubmit, reset, formState, watch } = useForm<IssueFormValues>({
+  const { control, register, handleSubmit, reset, formState, watch, setValue } = useForm<IssueFormValues>({
     resolver: zodResolver(issueSchema),
     defaultValues: {
       projectId: defaultProjectId ?? '',
@@ -37,11 +44,14 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
       summary: '',
       description: '',
       priority: 'medium',
-      status: 'todo'
+      status: 'todo',
+      sprintId: defaultSprintId ?? null,
+      columnId: defaultColumnId ?? null
     }
   })
 
   const selectedProjectId = watch('projectId')
+  const selectedColumnId = watch('columnId')
 
   useEffect(() => {
     if (!open) return
@@ -51,9 +61,11 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
       summary: '',
       description: '',
       priority: 'medium',
-      status: 'todo'
+      status: 'todo',
+      sprintId: defaultSprintId ?? null,
+      columnId: defaultColumnId ?? null
     })
-  }, [defaultProjectId, open, reset])
+  }, [defaultProjectId, defaultSprintId, defaultColumnId, open, reset])
 
   const createIssue = useMutation({
     mutationFn: async (payload: IssueFormValues) => {
@@ -62,7 +74,7 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
       return result.data
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['issues'] })
+      await queryClient.invalidateQueries({ queryKey: ['issues'], exact: false })
       onClose()
     }
   })
@@ -72,6 +84,34 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
   }
 
   const projectOptions = projects ?? []
+  const { data: sprints } = useSprints(selectedProjectId)
+  const { data: columns } = useBoardColumns(selectedProjectId)
+
+  useEffect(() => {
+    if (!selectedProjectId && projectOptions.length === 1) {
+      setValue('projectId', projectOptions[0]?.id ?? '')
+    }
+  }, [projectOptions, selectedProjectId, setValue])
+
+  useEffect(() => {
+    if (!selectedProjectId) return
+    if (!columns || columns.length === 0) return
+    if (selectedColumnId) return
+    const initialColumn = defaultColumnId
+      ? columns.find((column) => column.id === defaultColumnId)
+      : columns[0]
+    if (initialColumn?.id) {
+      setValue('columnId', initialColumn.id)
+      setValue('status', initialColumn.status)
+    }
+  }, [columns, defaultColumnId, selectedColumnId, selectedProjectId, setValue])
+
+  useEffect(() => {
+    if (!selectedColumnId || !columns) return
+    const column = columns.find((entry) => entry.id === selectedColumnId)
+    if (!column) return
+    setValue('status', column.status)
+  }, [columns, selectedColumnId, setValue])
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -102,6 +142,52 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
             Create a project first to add issues.
           </Typography>
         )}
+        <Controller
+          name="sprintId"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              select
+              label="Sprint"
+              value={field.value ?? ''}
+              onChange={(event) => field.onChange(event.target.value || null)}
+              disabled={!selectedProjectId}
+              helperText={!selectedProjectId ? 'Select a project to see sprints' : undefined}
+            >
+              <MenuItem value="">Backlog</MenuItem>
+              {sprints?.map((sprint) => (
+                <MenuItem key={sprint.id} value={sprint.id}>
+                  {sprint.name} {sprint.status === 'active' ? '(Active)' : ''}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        />
+        <Controller
+          name="columnId"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              select
+              label="Column"
+              value={field.value ?? ''}
+              onChange={(event) => field.onChange(event.target.value || null)}
+              disabled={!selectedProjectId}
+              helperText={!selectedProjectId ? 'Select a project to see columns' : undefined}
+            >
+              {(columns?.length ?? 0) === 0 && (
+                <MenuItem value="" disabled>
+                  No columns
+                </MenuItem>
+              )}
+              {columns?.map((column) => (
+                <MenuItem key={column.id} value={column.id}>
+                  {column.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        />
         <Controller
           name="issueType"
           control={control}
@@ -143,19 +229,25 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
               </TextField>
             )}
           />
-          <Controller
-            name="status"
-            control={control}
-            render={({ field }) => (
-              <TextField select label="Status" value={field.value} onChange={field.onChange}>
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+              <TextField
+                select
+                label="Status"
+                value={field.value}
+                onChange={field.onChange}
+                disabled={Boolean(selectedColumnId) && Boolean(columns?.length)}
+              >
                 {ISSUE_STATUSES.map((status) => (
                   <MenuItem key={status} value={status}>
                     {status}
                   </MenuItem>
                 ))}
               </TextField>
-            )}
-          />
+          )}
+        />
         </Box>
         <Controller
           name="assigneeId"
@@ -182,11 +274,21 @@ export function CreateIssueModal({ open, onClose, defaultProjectId }: CreateIssu
               setValueAs: (value) => (value === '' ? undefined : Number(value))
             })}
           />
-          <TextField
-            label="Due Date"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            {...register('dueDate', { setValueAs: (value) => (value === '' ? undefined : value) })}
+          <Controller
+            name="dueDate"
+            control={control}
+            render={({ field }) => (
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Due Date"
+                  value={field.value ? new Date(field.value) : null}
+                  onChange={(value) => {
+                    field.onChange(value ? format(value, 'yyyy-MM-dd') : undefined)
+                  }}
+                  slotProps={{ textField: { size: 'small' } }}
+                />
+              </LocalizationProvider>
+            )}
           />
         </Box>
         {createIssue.isError && (

@@ -51,6 +51,7 @@ interface DbIssueRow {
   project_id: string
   sprint_id?: string | null
   parent_issue_id?: string | null
+  column_id?: string | null
   issue_key: string
   issue_type: string
   summary: string
@@ -170,6 +171,7 @@ export const mapIssueRow = (row: DbIssueRow): IssueWithAssignee => ({
   projectId: row.project_id,
   sprintId: row.sprint_id ?? null,
   parentIssueId: row.parent_issue_id ?? null,
+  columnId: row.column_id ?? null,
   issueKey: row.issue_key,
   issueType: isIssueType(row.issue_type) ? row.issue_type : 'task',
   summary: row.summary,
@@ -198,6 +200,7 @@ export const mapIssueRowWithoutAssignee = (row: DbIssueRow): Issue => {
     projectId: mapped.projectId,
     ...(mapped.sprintId !== undefined ? { sprintId: mapped.sprintId } : {}),
     ...(mapped.parentIssueId !== undefined ? { parentIssueId: mapped.parentIssueId } : {}),
+    ...(mapped.columnId !== undefined ? { columnId: mapped.columnId } : {}),
     issueKey: mapped.issueKey,
     issueType: mapped.issueType,
     summary: mapped.summary,

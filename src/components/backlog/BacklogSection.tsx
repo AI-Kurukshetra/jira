@@ -39,6 +39,14 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
   const [moveTarget, setMoveTarget] = useState<string>('backlog')
   const [actionError, setActionError] = useState<string | null>(null)
 
+  const filteredIssues = useMemo(() => {
+    if (!issues) return []
+    return applyIssueFilters(issues, filters, me?.user.id)
+  }, [issues, filters, me?.user.id])
+
+  const activeSprint = sprints?.find((sprint) => sprint.status === 'active') ?? null
+  const futureSprints = (sprints ?? []).filter((sprint) => sprint.status === 'pending')
+
   if (sprintsLoading || issuesLoading) {
     return <LoadingSkeleton rows={6} height={28} />
   }
@@ -47,15 +55,7 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
     return <EmptyState title="Project not found" description="We could not find this project." />
   }
 
-  const activeSprint = sprints?.find((sprint) => sprint.status === 'active') ?? null
-  const futureSprints = (sprints ?? []).filter((sprint) => sprint.status === 'pending')
-
-  const filteredIssues = useMemo(() => {
-    if (!issues) return []
-    return applyIssueFilters(issues, filters, me?.user.id)
-  }, [issues, filters, me?.user.id])
-
-  if (!filteredIssues || filteredIssues.length === 0) {
+  if (filteredIssues.length === 0) {
     return (
       <EmptyState
         title="No issues yet"

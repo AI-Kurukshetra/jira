@@ -53,7 +53,21 @@ export async function PATCH(request: Request, { params }: Params) {
     return fail('Invalid status transition', 400)
   }
 
-  const nextStatus = parsed.data.status ?? current.status
+  let nextColumnId = parsed.data.columnId ?? current.column_id
+  let nextStatus = parsed.data.status ?? current.status
+
+  if (parsed.data.columnId) {
+    const { data: column } = await supabase
+      .from('board_columns')
+      .select('id, status')
+      .eq('id', parsed.data.columnId)
+      .single()
+    if (column) {
+      nextStatus = column.status
+      nextColumnId = column.id
+    }
+  }
+
   const resolvedAt = nextStatus === 'done' && current.status !== 'done' ? new Date().toISOString() : current.resolved_at
 
   const { data: updated, error: updateError } = await supabase
@@ -61,6 +75,7 @@ export async function PATCH(request: Request, { params }: Params) {
     .update({
       sprint_id: parsed.data.sprintId ?? current.sprint_id,
       parent_issue_id: parsed.data.parentIssueId ?? current.parent_issue_id,
+      column_id: nextColumnId,
       issue_type: parsed.data.issueType ?? current.issue_type,
       summary: parsed.data.summary ?? current.summary,
       description: parsed.data.description ?? current.description,

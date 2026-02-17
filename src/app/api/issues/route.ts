@@ -51,7 +51,31 @@ export async function POST(request: Request) {
 
   const payload = await request.json()
   const parsed = issueSchema.safeParse(payload)
-  if (!parsed.success) return fail(parsed.error.message, 400)
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? parsed.error.message, 400)
+
+  const { data: columns, error: columnsError } = await supabase
+    .from('board_columns')
+    .select('id, status, position')
+    .eq('project_id', parsed.data.projectId)
+    .order('position', { ascending: true })
+
+  if (columnsError) {
+    logger.error({ columnsError }, 'Failed to load board columns')
+    return fail('Failed to load board columns', 500)
+  }
+
+  const requestedColumn = parsed.data.columnId
+    ? columns?.find((column) => column.id === parsed.data.columnId)
+    : undefined
+
+  const fallbackColumn = columns?.find((column) => column.status === (parsed.data.status ?? 'todo')) ?? columns?.[0]
+
+  if (!requestedColumn && !fallbackColumn) {
+    return fail('No board columns available for this project', 400)
+  }
+
+  const selectedColumn = requestedColumn ?? fallbackColumn!
+  const selectedStatus = selectedColumn.status
 
   const { data: issue, error: insertError } = await supabase
     .from('issues')
@@ -59,10 +83,11 @@ export async function POST(request: Request) {
       project_id: parsed.data.projectId,
       sprint_id: parsed.data.sprintId ?? null,
       parent_issue_id: parsed.data.parentIssueId ?? null,
+      column_id: selectedColumn.id,
       issue_type: parsed.data.issueType,
       summary: parsed.data.summary,
       description: parsed.data.description ?? null,
-      status: parsed.data.status ?? 'todo',
+      status: selectedStatus,
       priority: parsed.data.priority ?? 'medium',
       assignee_id: parsed.data.assigneeId ?? null,
       reporter_id: parsed.data.reporterId ?? user.id,
@@ -74,7 +99,7 @@ export async function POST(request: Request) {
 
   if (insertError || !issue) {
     logger.error({ insertError }, 'Failed to create issue')
-    return fail('Failed to create issue', 500)
+    return fail(insertError?.message ?? 'Failed to create issue', 500)
   }
 
   await logActivity(supabase, {

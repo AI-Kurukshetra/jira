@@ -12,7 +12,7 @@ import { useCreateIssue } from '@/components/issues/CreateIssueProvider'
 export function AssignedIssues() {
   const { data: me } = useMe()
   const { openCreateIssue } = useCreateIssue()
-  const { data, isLoading, isError } = useIssues(
+  const { data, isLoading, isError, error } = useIssues(
     me?.user.id ? { assigneeId: me.user.id } : undefined
   )
 
@@ -21,7 +21,8 @@ export function AssignedIssues() {
   }
 
   if (isError) {
-    return <Box sx={{ color: 'error.main' }}>Failed to load issues.</Box>
+    const message = error instanceof Error ? error.message : 'Failed to load issues.'
+    return <Box sx={{ color: 'error.main' }}>{message}</Box>
   }
 
   if (!data || data.length === 0) {
