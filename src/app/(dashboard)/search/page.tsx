@@ -42,7 +42,7 @@ function SearchResults() {
   const projectRows = useMemo(() => data?.projects ?? [], [data])
 
   if (!query) {
-    return <EmptyState title="Search ProjectHub" description="Enter at least 2 characters to search." />
+    return <EmptyState title="Search Jira Bacancy" description="Enter at least 2 characters to search." />
   }
 
   if (isLoading) {

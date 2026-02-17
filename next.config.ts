@@ -11,6 +11,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  devIndicators: {
+    buildActivity: false,
+    appIsrStatus: false
+  },
   turbopack: {
     root: __dirname
   },

@@ -76,7 +76,7 @@ export async function POST(request: Request, { params }: Params) {
 
   if (insertError || !data) {
     logger.error({ insertError }, 'Failed to add attachment')
-    return fail('Failed to add attachment', 500)
+    return fail(insertError?.message ?? 'Failed to add attachment', 500)
   }
 
   await logActivity(supabase, {

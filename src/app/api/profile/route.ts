@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
 
   if (updateError) {
     logger.error({ updateError }, 'Failed to update profile')
-    return fail('Failed to update profile', 500)
+    return fail(updateError.message ?? 'Failed to update profile', 500)
   }
 
   return ok(mapProfileRow(data))

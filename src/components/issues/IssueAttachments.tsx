@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { apiDelete, apiGet, apiPost } from '@/lib/api/client'
 import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, ATTACHMENTS_BUCKET, MAX_ATTACHMENTS_PER_ISSUE } from '@/config/constants'
+import { sanitizeFileName } from '@/lib/utils'
 
 interface IssueAttachmentsProps {
   issueId: string
@@ -83,7 +84,8 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
 
     setUploading(true)
     const supabase = createClient()
-    const storagePath = `${issueId}/${Date.now()}-${file.name}`
+    const safeName = sanitizeFileName(file.name)
+    const storagePath = `${issueId}/${Date.now()}-${safeName}`
 
     const { error: uploadError } = await supabase.storage.from(ATTACHMENTS_BUCKET).upload(storagePath, file, {
       upsert: false

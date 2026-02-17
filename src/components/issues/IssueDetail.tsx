@@ -46,6 +46,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
   const [priority, setPriority] = useState<IssuePriority>(issue.priority)
   const [assigneeId, setAssigneeId] = useState<string | null>(issue.assigneeId ?? null)
   const [labels, setLabels] = useState<string[]>([])
+  const [labelError, setLabelError] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -93,6 +94,7 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
     setStatus(issue.status)
     setPriority(issue.priority)
     setAssigneeId(issue.assigneeId ?? null)
+    setLabels(issue.labels ?? [])
   }, [issue])
 
   const updateIssue = useMutation({
@@ -151,6 +153,24 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['comments', issue.id] })
       await queryClient.invalidateQueries({ queryKey: ['activity', issue.id] })
+    }
+  })
+
+  const updateLabels = useMutation({
+    mutationFn: async (nextLabels: string[]) => {
+      const result = await apiPost(`/api/issues/${issue.id}/labels`, { labels: nextLabels })
+      if (!result.success) throw new Error(result.error)
+      return nextLabels
+    },
+    onSuccess: (next) => {
+      queryClient.setQueryData(['issue', issue.projectId, issue.issueKey], {
+        ...issue,
+        labels: next
+      })
+      setLabelError(null)
+    },
+    onError: (err) => {
+      setLabelError(err instanceof Error ? err.message : 'Failed to update labels')
     }
   })
 
@@ -317,8 +337,20 @@ export function IssueDetail({ issue, projectKey }: IssueDetailProps) {
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 2, alignItems: 'center' }}>
               <Typography variant="caption" sx={{ color: 'text.tertiary' }}>Labels</Typography>
-              <LabelMultiSelect value={labels} onChange={setLabels} />
+              <LabelMultiSelect
+                projectId={issue.projectId}
+                value={labels}
+                onChange={(next) => {
+                  setLabels(next)
+                  updateLabels.mutate(next)
+                }}
+              />
             </Box>
+            {labelError && (
+              <Typography variant="caption" sx={{ color: 'error.main' }}>
+                {labelError}
+              </Typography>
+            )}
           </Box>
           <IssueAttachments issueId={issue.id} />
           <IssueTimeTracking issueId={issue.id} />

@@ -46,7 +46,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <BoltIcon sx={{ color: 'primary.main', fontSize: 18 }} />
         {!collapsed && (
           <Typography variant="h6" sx={{ fontFamily: '"DM Sans", sans-serif', fontWeight: 600 }}>
-            ProjectHub
+            Jira Bacancy
           </Typography>
         )}
       </Box>
@@ -109,17 +109,19 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       <Divider />
 
-      <Box sx={{ px: 1.5, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <UserAvatar userId="system" fullName="System User" size="sm" />
+      <Box sx={{ px: 1.5, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', gap: 1 }}>
         {!collapsed && (
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              System User
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
-              Admin
-            </Typography>
-          </Box>
+          <>
+            <UserAvatar userId="system" fullName="System User" size="sm" />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                System User
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.tertiary' }}>
+                Admin
+              </Typography>
+            </Box>
+          </>
         )}
         <IconButton size="small" onClick={onToggle} aria-label="Toggle sidebar">
           <BoltIcon fontSize="inherit" />

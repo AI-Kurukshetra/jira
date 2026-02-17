@@ -123,7 +123,10 @@ const darkThemeOptions: ThemeOptions = {
         '*::-webkit-scrollbar-thumb': { background: '#2E2E42', borderRadius: '3px' },
         html: { scrollBehavior: 'smooth' },
         body: { backgroundColor: darkTokens.bg.default, overflowX: 'hidden' },
-        '::selection': { background: alpha(darkTokens.accent.main, 0.3), color: darkTokens.text.primary }
+        '::selection': { background: alpha(darkTokens.accent.main, 0.3), color: darkTokens.text.primary },
+        '[data-nextjs-dev-indicator]': { display: 'none !important' },
+        '#__next-build-watcher': { display: 'none !important' },
+        '#nextjs-portal [data-nextjs-dev-indicator]': { display: 'none !important' }
       }
     },
     MuiButton: {
