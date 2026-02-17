@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { apiGet } from '@/lib/api/client'
 import type { Issue } from '@/lib/types'
+import type { ProfileLite } from '@/lib/types/profile'
 
 interface UseIssuesParams {
   projectId?: string
@@ -11,6 +12,10 @@ interface UseIssuesParams {
   status?: string
   assigneeId?: string
   query?: string
+}
+
+export interface IssueWithAssignee extends Issue {
+  assignee?: ProfileLite | null
 }
 
 export function useIssues(params?: UseIssuesParams) {
@@ -26,7 +31,7 @@ export function useIssues(params?: UseIssuesParams) {
   return useQuery({
     queryKey: ['issues', queryString],
     queryFn: async () => {
-      const result = await apiGet<Issue[]>(`/api/issues${queryString ? `?${queryString}` : ''}`)
+      const result = await apiGet<IssueWithAssignee[]>(`/api/issues${queryString ? `?${queryString}` : ''}`)
       if (!result.success) throw new Error(result.error)
       return result.data
     }

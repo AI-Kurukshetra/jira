@@ -4,7 +4,7 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import { Badge, Box, IconButton, Paper, Typography } from '@mui/material'
 import { useState } from 'react'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiGet, apiPatch, apiPost } from '@/lib/api/client'
 
 interface NotificationItem {
@@ -17,6 +17,7 @@ interface NotificationItem {
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
 
   const { data } = useQuery({
     queryKey: ['notifications'],
@@ -29,13 +30,47 @@ export function NotificationBell() {
 
   const unreadCount = data?.filter((item) => !item.is_read).length ?? 0
 
-  const markAllRead = async () => {
-    await apiPost('/api/notifications/mark-all-read', {})
-  }
+  const markAllRead = useMutation({
+    mutationFn: async () => {
+      const result = await apiPost('/api/notifications/mark-all-read', {})
+      if (!result.success) throw new Error(result.error)
+      return true
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previous = queryClient.getQueryData<NotificationItem[]>(['notifications'])
+      queryClient.setQueryData<NotificationItem[]>(['notifications'], (current) =>
+        current ? current.map((item) => ({ ...item, is_read: true })) : current
+      )
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous)
+      }
+    }
+  })
 
-  const markRead = async (id: string) => {
-    await apiPatch(`/api/notifications/${id}`, {})
-  }
+  const markRead = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await apiPatch(`/api/notifications/${id}`, {})
+      if (!result.success) throw new Error(result.error)
+      return id
+    },
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] })
+      const previous = queryClient.getQueryData<NotificationItem[]>(['notifications'])
+      queryClient.setQueryData<NotificationItem[]>(['notifications'], (current) =>
+        current ? current.map((item) => (item.id === id ? { ...item, is_read: true } : item)) : current
+      )
+      return { previous }
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous)
+      }
+    }
+  })
 
   return (
     <Box sx={{ position: 'relative' }}>
@@ -67,7 +102,7 @@ export function NotificationBell() {
             <Typography
               variant="caption"
               sx={{ color: 'primary.main', cursor: 'pointer' }}
-              onClick={markAllRead}
+              onClick={() => markAllRead.mutate()}
             >
               Mark all read
             </Typography>
@@ -77,7 +112,7 @@ export function NotificationBell() {
               data.map((item) => (
                 <Box
                   key={item.id}
-                  onClick={() => markRead(item.id)}
+                  onClick={() => markRead.mutate(item.id)}
                   sx={(theme) => ({
                     borderRadius: 1,
                     px: 1,

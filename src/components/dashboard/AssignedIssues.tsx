@@ -3,6 +3,7 @@
 import { Box } from '@mui/material'
 
 import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { IssueRow } from '@/components/backlog/IssueRow'
 import { useIssues } from '@/lib/hooks/useIssues'
 import { useMe } from '@/lib/hooks/useMe'
@@ -14,7 +15,7 @@ export function AssignedIssues() {
   )
 
   if (isLoading) {
-    return <Box sx={{ color: 'text.secondary' }}>Loading issues...</Box>
+    return <LoadingSkeleton rows={4} height={28} />
   }
 
   if (isError) {
@@ -41,7 +42,14 @@ export function AssignedIssues() {
           issueType={issue.issueType}
           priority={issue.priority}
           status={issue.status}
-          {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
+          {...(issue.assignee
+            ? {
+                assignee: {
+                  id: issue.assigneeId ?? issue.id,
+                  name: issue.assignee.displayName ?? issue.assignee.fullName ?? 'Assignee'
+                }
+              }
+            : {})}
           {...(issue.storyPoints !== null && issue.storyPoints !== undefined
             ? { storyPoints: issue.storyPoints }
             : {})}

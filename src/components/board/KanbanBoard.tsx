@@ -10,10 +10,12 @@ import { KanbanColumn } from '@/components/board/KanbanColumn'
 import { IssueCard } from '@/components/issues/IssueCard'
 import { SortableIssueCard } from '@/components/board/SortableIssueCard'
 import { apiPatch } from '@/lib/api/client'
-import type { Issue, IssueStatus } from '@/lib/types'
+import type { IssueStatus } from '@/lib/types'
+import type { IssueWithAssignee } from '@/lib/hooks/useIssues'
+import type { Issue } from '@/lib/types'
 
 interface KanbanBoardProps {
-  initialIssues?: Issue[]
+  initialIssues?: IssueWithAssignee[]
 }
 
 const STATUS_COLUMNS = [
@@ -24,7 +26,7 @@ const STATUS_COLUMNS = [
 
 export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [issues, setIssues] = useState<Issue[]>(initialIssues)
+  const [issues, setIssues] = useState<IssueWithAssignee[]>(initialIssues)
   const queryClient = useQueryClient()
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
@@ -40,9 +42,9 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
     },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: ['issues'] })
-      const previous = queryClient.getQueryData<Issue[]>(['issues'])
+      const previous = queryClient.getQueryData<IssueWithAssignee[]>(['issues'])
       if (previous) {
-        queryClient.setQueryData<Issue[]>(['issues'], (current) => {
+        queryClient.setQueryData<IssueWithAssignee[]>(['issues'], (current) => {
           if (!current) return current
           return current.map((issue) =>
             issue.id === payload.id
@@ -59,7 +61,7 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData<Issue[]>(['issues'], (current) => {
+      queryClient.setQueryData<IssueWithAssignee[]>(['issues'], (current) => {
         if (!current) return current
         return current.map((issue) => (issue.id === data.id ? data : issue))
       })
@@ -67,7 +69,7 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
   })
 
   const grouped = useMemo(() => {
-    const map: Record<string, Issue[]> = { todo: [], inprogress: [], done: [] }
+    const map: Record<string, IssueWithAssignee[]> = { todo: [], inprogress: [], done: [] }
     for (const issue of issues) {
       map[issue.status]?.push(issue)
     }
@@ -135,7 +137,14 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
                     issueType={issue.issueType}
                     priority={issue.priority}
                     labels={[]}
-                    {...(issue.assigneeId ? { assignee: { id: issue.assigneeId, name: 'Assignee' } } : {})}
+                    {...(issue.assignee
+                      ? {
+                          assignee: {
+                            id: issue.assigneeId ?? issue.id,
+                            name: issue.assignee.displayName ?? issue.assignee.fullName ?? 'Assignee'
+                          }
+                        }
+                      : {})}
                     {...(issue.storyPoints !== null && issue.storyPoints !== undefined
                       ? { storyPoints: issue.storyPoints }
                       : {})}
@@ -156,7 +165,14 @@ export function KanbanBoard({ initialIssues = [] }: KanbanBoardProps) {
               issueType={activeIssue.issueType}
               priority={activeIssue.priority}
               labels={[]}
-              {...(activeIssue.assigneeId ? { assignee: { id: activeIssue.assigneeId, name: 'Assignee' } } : {})}
+              {...(activeIssue.assignee
+                ? {
+                    assignee: {
+                      id: activeIssue.assigneeId ?? activeIssue.id,
+                      name: activeIssue.assignee.displayName ?? activeIssue.assignee.fullName ?? 'Assignee'
+                    }
+                  }
+                : {})}
               {...(activeIssue.storyPoints !== null && activeIssue.storyPoints !== undefined
                 ? { storyPoints: activeIssue.storyPoints }
                 : {})}

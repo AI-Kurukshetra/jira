@@ -13,18 +13,23 @@ export async function GET(request: Request) {
   const status = searchParams.get('status')
   const assigneeId = searchParams.get('assigneeId')
   const query = searchParams.get('query')
+  const issueKey = searchParams.get('issueKey')
 
   const supabase = await createClient()
   const { user, error } = await requireUser(supabase)
   if (error || !user) return fail('Unauthorized', 401)
 
-  let queryBuilder = supabase.from('issues').select('*').order('created_at', { ascending: false })
+  let queryBuilder = supabase
+    .from('issues')
+    .select('*, assignee:profiles!issues_assignee_id(full_name, display_name, avatar_url)')
+    .order('created_at', { ascending: false })
 
   if (projectId) queryBuilder = queryBuilder.eq('project_id', projectId)
   if (sprintId) queryBuilder = queryBuilder.eq('sprint_id', sprintId)
   if (status) queryBuilder = queryBuilder.eq('status', status)
   if (assigneeId) queryBuilder = queryBuilder.eq('assignee_id', assigneeId)
   if (query) queryBuilder = queryBuilder.ilike('summary', `%${query}%`)
+  if (issueKey) queryBuilder = queryBuilder.eq('issue_key', issueKey)
 
   const { data, error: fetchError } = await queryBuilder
 
@@ -33,7 +38,18 @@ export async function GET(request: Request) {
     return fail('Failed to fetch issues', 500)
   }
 
-  return ok(data ?? [])
+  const mapped = (data ?? []).map((issue) => ({
+    ...issue,
+    assignee: issue.assignee
+      ? {
+          fullName: issue.assignee.full_name,
+          displayName: issue.assignee.display_name,
+          avatarUrl: issue.assignee.avatar_url
+        }
+      : null
+  }))
+
+  return ok(mapped)
 }
 
 export async function POST(request: Request) {

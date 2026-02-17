@@ -1,11 +1,13 @@
 'use client'
 
 import AttachFileIcon from '@mui/icons-material/AttachFile'
-import { Box, Button, Typography } from '@mui/material'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { Box, Button, IconButton, Typography } from '@mui/material'
 import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { createClient } from '@/lib/supabase/client'
-import { apiPost } from '@/lib/api/client'
+import { apiDelete, apiGet, apiPost } from '@/lib/api/client'
 import { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, ATTACHMENTS_BUCKET } from '@/config/constants'
 
 interface IssueAttachmentsProps {
@@ -23,7 +25,41 @@ interface AttachmentRow {
 export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [items, setItems] = useState<AttachmentRow[]>([])
+  const queryClient = useQueryClient()
+
+  const { data: items = [] } = useQuery({
+    queryKey: ['attachments', issueId],
+    queryFn: async () => {
+      const result = await apiGet<AttachmentRow[]>(`/api/issues/${issueId}/attachments`)
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    }
+  })
+
+  const deleteAttachment = useMutation({
+    mutationFn: async (attachmentId: string) => {
+      const result = await apiDelete<AttachmentRow, { attachmentId: string }>(
+        `/api/issues/${issueId}/attachments`,
+        { attachmentId }
+      )
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    },
+    onMutate: async (attachmentId) => {
+      await queryClient.cancelQueries({ queryKey: ['attachments', issueId] })
+      const previous = queryClient.getQueryData<AttachmentRow[]>(['attachments', issueId])
+      queryClient.setQueryData<AttachmentRow[]>(
+        ['attachments', issueId],
+        (current) => current?.filter((item) => item.id !== attachmentId) ?? []
+      )
+      return { previous }
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['attachments', issueId], context.previous)
+      }
+    }
+  })
 
   const onFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -57,10 +93,10 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
     const metaResult = await apiPost<AttachmentRow, Omit<AttachmentRow, 'id'>>(
       `/api/issues/${issueId}/attachments`,
       {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      storagePath
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        storagePath
       }
     )
 
@@ -70,7 +106,10 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
       return
     }
 
-    setItems((current) => [...current, metaResult.data])
+    queryClient.setQueryData<AttachmentRow[]>(
+      ['attachments', issueId],
+      (current) => (current ? [metaResult.data, ...current] : [metaResult.data])
+    )
     setUploading(false)
   }
 
@@ -102,13 +141,18 @@ export function IssueAttachments({ issueId }: IssueAttachmentsProps) {
       ) : (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
           {items.map((item) => (
-            <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="caption" sx={{ color: 'text.primary' }}>
-                {item.fileName}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : ''}
-              </Typography>
+            <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.primary' }}>
+                  {item.fileName}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {item.fileSize ? `${Math.round(item.fileSize / 1024)} KB` : ''}
+                </Typography>
+              </Box>
+              <IconButton size="small" onClick={() => deleteAttachment.mutate(item.id)}>
+                <DeleteOutlineIcon fontSize="inherit" />
+              </IconButton>
             </Box>
           ))}
         </Box>

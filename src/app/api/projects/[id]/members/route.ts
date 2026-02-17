@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: Params) {
 
   const { data, error: fetchError } = await supabase
     .from('project_members')
-    .select('*')
+    .select('id, project_id, user_id, role, joined_at, profiles!project_members_user_id_fkey(full_name, display_name, avatar_url)')
     .eq('project_id', id)
 
   if (fetchError) {
@@ -24,7 +24,22 @@ export async function GET(_request: Request, { params }: Params) {
     return fail('Failed to fetch project members', 500)
   }
 
-  return ok(data ?? [])
+  const mapped = (data ?? []).map((member) => ({
+    id: member.id,
+    projectId: member.project_id,
+    userId: member.user_id,
+    role: member.role,
+    joinedAt: member.joined_at,
+    profile: member.profiles
+      ? {
+          fullName: member.profiles.full_name,
+          displayName: member.profiles.display_name,
+          avatarUrl: member.profiles.avatar_url
+        }
+      : null
+  }))
+
+  return ok(mapped)
 }
 
 export async function POST(request: Request, { params }: Params) {

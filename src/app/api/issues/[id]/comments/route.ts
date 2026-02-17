@@ -78,6 +78,40 @@ export async function POST(request: Request, { params }: Params) {
   return ok(data, 201)
 }
 
+export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { user, error } = await requireUser(supabase)
+  if (error || !user) return fail('Unauthorized', 401)
+
+  const { data, error: fetchError } = await supabase
+    .from('comments')
+    .select('id, body, created_at, is_deleted, author:profiles!comments_author_id_fkey(full_name, display_name, avatar_url)')
+    .eq('issue_id', id)
+    .order('created_at', { ascending: true })
+
+  if (fetchError) {
+    logger.error({ fetchError }, 'Failed to fetch comments')
+    return fail('Failed to fetch comments', 500)
+  }
+
+  const mapped = (data ?? []).map((comment) => ({
+    id: comment.id,
+    body: comment.body,
+    createdAt: comment.created_at,
+    isDeleted: comment.is_deleted,
+    author: comment.author
+      ? {
+          fullName: comment.author.full_name,
+          displayName: comment.author.display_name,
+          avatarUrl: comment.author.avatar_url
+        }
+      : null
+  }))
+
+  return ok(mapped)
+}
+
 export async function PATCH(request: Request, { params }: Params) {
   const { id } = await params
   const supabase = await createClient()

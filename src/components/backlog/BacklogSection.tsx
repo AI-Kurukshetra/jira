@@ -4,6 +4,7 @@ import { Box } from '@mui/material'
 
 import { BacklogView } from '@/components/backlog/BacklogView'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { useProjectByKey } from '@/lib/hooks/useProjectByKey'
 import { useSprints } from '@/lib/hooks/useSprints'
 import { useIssues } from '@/lib/hooks/useIssues'
@@ -20,7 +21,7 @@ export function BacklogSection({ projectKey }: BacklogSectionProps) {
   )
 
   if (sprintsLoading || issuesLoading) {
-    return <Box sx={{ color: 'text.secondary' }}>Loading backlog...</Box>
+    return <LoadingSkeleton rows={6} height={28} />
   }
 
   if (!project) {

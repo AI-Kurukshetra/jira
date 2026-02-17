@@ -3,6 +3,7 @@
 import { Box } from '@mui/material'
 
 import { EmptyState } from '@/components/ui/EmptyState'
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton'
 import { ProjectCardList } from '@/components/projects/ProjectCardList'
 import { useProjects } from '@/lib/hooks/useProjects'
 
@@ -10,7 +11,7 @@ export function ProjectsSection() {
   const { data, isLoading, isError } = useProjects()
 
   if (isLoading) {
-    return <Box sx={{ color: 'text.secondary' }}>Loading projects...</Box>
+    return <LoadingSkeleton rows={4} height={32} />
   }
 
   if (isError) {

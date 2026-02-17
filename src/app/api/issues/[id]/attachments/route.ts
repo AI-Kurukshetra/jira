@@ -6,6 +6,8 @@ import { ok, fail } from '@/lib/api/response'
 import { attachmentSchema } from '@/lib/validations/schemas'
 import { logger } from '@/lib/logger'
 import { logActivity } from '@/lib/services/activity'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { ATTACHMENTS_BUCKET } from '@/config/constants'
 
 interface Params {
   params: Promise<{ id: string }>
@@ -14,6 +16,26 @@ interface Params {
 const attachmentDeleteSchema = z.object({
   attachmentId: z.string().uuid()
 })
+
+export async function GET(_request: Request, { params }: Params) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { user, error } = await requireUser(supabase)
+  if (error || !user) return fail('Unauthorized', 401)
+
+  const { data, error: fetchError } = await supabase
+    .from('attachments')
+    .select('*')
+    .eq('issue_id', id)
+    .order('created_at', { ascending: false })
+
+  if (fetchError) {
+    logger.error({ fetchError }, 'Failed to fetch attachments')
+    return fail('Failed to fetch attachments', 500)
+  }
+
+  return ok(data ?? [])
+}
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params
@@ -61,6 +83,31 @@ export async function DELETE(request: Request, { params }: Params) {
   const payload = await request.json()
   const parsed = attachmentDeleteSchema.safeParse(payload)
   if (!parsed.success) return fail(parsed.error.message, 400)
+
+  const { data: attachment, error: fetchError } = await supabase
+    .from('attachments')
+    .select('*')
+    .eq('id', parsed.data.attachmentId)
+    .eq('issue_id', id)
+    .single()
+
+  if (fetchError || !attachment) {
+    logger.error({ fetchError }, 'Failed to fetch attachment')
+    return fail('Failed to delete attachment', 500)
+  }
+
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
+  )
+  const { error: storageError } = await admin.storage
+    .from(ATTACHMENTS_BUCKET)
+    .remove([attachment.storage_path])
+
+  if (storageError) {
+    logger.error({ storageError }, 'Failed to remove attachment from storage')
+    return fail('Failed to delete attachment', 500)
+  }
 
   const { data, error: deleteError } = await supabase
     .from('attachments')
